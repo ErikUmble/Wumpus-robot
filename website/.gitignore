@@ -20,5 +20,7 @@ logs
 
 # Local env files
 .env
+.venv
+.venv.*
 .env.*
 !.env.example
