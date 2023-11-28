@@ -20,6 +20,15 @@ def board_sample1():
         [0, 2, 0, 1]
     ])
 
+@pytest.fixture
+def empty_scents():
+    return [
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]
+    ]
+
 def test_shortest_path(board_sample1):
     # path from start (0, 0) at top left
     assert shortest_path(0, 0, 2, 2, board_sample1) == [(1, 0), (1, 0), (0, 1), (0, 1)]
@@ -34,7 +43,7 @@ def test_shortest_path(board_sample1):
     assert shortest_path(0, 3, 2, 2, board_sample1) is None
 
 
-def test_board_deductions():
+def test_board_deductions(empty_scents):
     # check that reduce behaves as expected
     board = Board()
     board.reduce(Tile.GOLD.value, 1, 1)
@@ -46,5 +55,26 @@ def test_board_deductions():
                            [3, 3, 0, 3]])
 
     # check that eliminate correctly determines the location of gold
-    board.eliminate(None)
+    board.eliminate(empty_scents)
     assert board.gold_pos == (1, 2)
+
+def test_eliminate(empty_scents):
+    board = Board([
+        [0, 1, 7, 7],
+        [5, 7, 7, 7],
+        [7, 7, 7, 7],
+        [7, 7, 7, 7]
+    ])
+    scents = empty_scents
+    scents[0][0] = 5
+
+    board.eliminate(scents)
+    assert board[1] == [4, 7, 7, 7]
+
+    # ensure that reducing with the scent information narrows gold entirely
+    board.reduce(5, 0, 0)
+    board.eliminate(scents)
+    print(board)
+    assert board.gold_pos == (1, 0)
+
+    

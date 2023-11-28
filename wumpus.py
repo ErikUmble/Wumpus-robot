@@ -31,72 +31,16 @@ class States(Enum):
     HAS_GOLD = 2
     FINISHED = 3
 
-
-class Board(list):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.gold_pos = None
-        self.wumpus_pos = None
-
-        # initialize board if not done already
-        if len(self) > 0:
-            return
-        
-        for x in range(WIDTH):
-            col = []
-            for y in range(HEIGHT):
-                col.append(Tile.UNKNOWN.value)
-            self.append(col)
-
-        
-
-    def reduce(self, scent, x, y):
-        """
-        Given scent (one of Tile values) at a particualar position (x, y)
-        this reduces the possibilities of surrounding tiles based on that information.
-        """
-        for dx, dy in DIRECTIONS:
-            if x + dx < WIDTH and y + dy < HEIGHT:
-                self[x + dx][y + dy] &= scent
-        
-        # since there is just 1 gold and 1 wumpus, we can further reduce from these scents
-        if scent == Tile.GOLD.value or scent == Tile.WUMPUS.value:
-            mask = 0b11111 ^ scent  # all ones except for where there is a 1 in scent
-            
-            # apply mask to every location except for the 4 adjacent to where the scent is
-            for _x in range(WIDTH):
-                for _y in range(HEIGHT):
-                    if abs(x - _x) + abs(y - _y) != 1:
-                        self[_x][_y] &= mask
-            
-
-    def eliminate(self, scents):
-        """
-        For each board location, this checks to see if current information about the board
-        state, combined with past scent information, can be used to deduce what the tile contains 
-        through elimination
-        """
-        def get_unique_pos(tile):
-            possible_pos = []
-            for x in range(WIDTH):
-                if len(possible_pos) > 1:
-                        break
-                for y in range(HEIGHT):
-                    if self[x][y] & tile:
-                        possible_pos.append((x, y))
-            if len(possible_pos) == 1:
-                return possible_pos[0]
-            return None
-        
-        # if we do not know where the wumpus or gold is, see if there is only option for where it can be
-        self.gold_pos = self.gold_pos or get_unique_pos(Tile.GOLD.value)
-        self.wumpus_pos = self.gold_pos or get_unique_pos(Tile.WUMPUS.value)
-
-        # TODO: use scents to eliminate if adjacent tiles to a scent have been determined
-        raise NotImplementedError
     
+def adjacent_positions(x, y):
+    """
+    returns a list of (adjacent_x, adjacent_y) pairs that are valid and adjacent to (x, y)
+    """
+    positions = []
+    for dx, dy in DIRECTIONS:
+        if (0 <= x + dx < WIDTH) and (0 <= y + dy < HEIGHT):
+            positions.append((x + dx, y + dy))
+    return positions
 
 def shortest_path(start_x, start_y, end_x, end_y, board : list):
     """
@@ -128,18 +72,9 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
     # initialize queue with tiles adjacent to end position
     # invariant: only add valid coordinates to the queue
     q = Queue()
-    if end_x > 0:
-        q.put((end_x - 1, end_y))
-        costs[end_x - 1][end_y] = 1
-    if end_x < WIDTH - 1:
-        q.put((end_x + 1, end_y))
-        costs[end_x + 1][end_y] = 1
-    if end_y > 0:
-        q.put((end_x, end_y -1))
-        costs[end_x][end_y - 1] = 1
-    if end_y < HEIGHT - 1:
-        q.put((end_x, end_y + 1))
-        costs[end_x][end_y + 1] = 1
+    for x, y in adjacent_positions(end_x, end_y):
+        q.put((x, y))
+        costs[x][y] = 1
 
     while not q.empty():
         x, y = q.get()
@@ -156,7 +91,6 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
 
         for dx, dy in DIRECTIONS:
             if not (0 <= x + dx < WIDTH) or not (0 <= y + dy < HEIGHT):
-                
                 continue
             if (costs[x + dx][y + dy] == MAX_VALUE):
                 # we have not considered that tile yet so it is one step more than this
@@ -184,8 +118,88 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
                 
     return path
 
+class Board(list):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.gold_pos = None
+        self.wumpus_pos = None
+
+        # initialize board if not done already
+        if len(self) > 0:
+            return
+        
+        for x in range(WIDTH):
+            col = []
+            for y in range(HEIGHT):
+                col.append(Tile.UNKNOWN.value)
+            self.append(col)
 
         
+
+    def reduce(self, scent, x, y):
+        """
+        Given scent (one of Tile values) at a particualar position (x, y)
+        this reduces the possibilities of surrounding tiles based on that information.
+        """
+        for dx, dy in DIRECTIONS:
+            if x + dx < WIDTH and y + dy < HEIGHT:
+                self[x + dx][y + dy] &= scent
+        
+        # since there is just 1 gold and 1 wumpus, we can further reduce from these scents
+        if scent & Tile.GOLD.value or scent & Tile.WUMPUS.value:
+            # create a mask that is zero only in gold and/or wumpus location respectively if they are in the scent
+            mask = ~(scent & (Tile.GOLD.value | Tile.WUMPUS.value))
+            
+            # apply mask to every location except for the 4 adjacent to where the scent is
+            for _x in range(WIDTH):
+                for _y in range(HEIGHT):
+                    if abs(x - _x) + abs(y - _y) != 1:
+                        self[_x][_y] &= mask
+            
+
+    def eliminate(self, scents):
+        """
+        For each board location, this checks to see if current information about the board
+        state, combined with past scent information, can be used to deduce what the tile contains 
+        through elimination
+        """
+        def get_unique_pos(tile):
+            possible_pos = []
+            for x in range(WIDTH):
+                if len(possible_pos) > 1:
+                        break
+                for y in range(HEIGHT):
+                    if self[x][y] & tile:
+                        possible_pos.append((x, y))
+            if len(possible_pos) == 1:
+                return possible_pos[0]
+            return None
+
+        # use scents to eliminate if adjacent tiles to a scent have been determined
+        # intuition: if a tile had the scent of a pit but three adjacent tiles are known to not be pits, then make
+        # the one possible title a guaranteed pit (same for wumpus and gold)
+        # do this for every tile with a nonzero scent
+        for x in range(WIDTH):
+            for y in range(HEIGHT):
+                if scents[x][y] == 0:
+                    continue
+                for tile in [Tile.PIT, Tile.GOLD, Tile.WUMPUS]:
+                    if (scents[x][y] & tile.value) == 0:
+                        continue
+                    possible_pos = []
+                    for _x, _y in adjacent_positions(x, y):
+                        if self[_x][_y] & tile.value:
+                            possible_pos.append((_x, _y))
+                    if len(possible_pos) == 1:
+                        _x, _y = possible_pos[0]
+                        self[_x][_y] = tile.value
+
+        # if we do not know where the wumpus or gold is, see if there is only option for where it can be
+        self.gold_pos = self.gold_pos or get_unique_pos(Tile.GOLD.value)
+        self.wumpus_pos = self.gold_pos or get_unique_pos(Tile.WUMPUS.value)
+
 
 class Robot:
     """
@@ -225,9 +239,16 @@ class Robot:
                 col.append(0)
 
     def start(self):
+        # TODO: determine whether or not to shoot the wumpus
         while self.state.value < States.GOLD_KNOWN:
-            # TODO: choose a square to move to, go there, sniff, repeat
-            raise NotImplementedError
+            x, y = self.get_explore_position()
+            self.move_to(x, y)
+            self.sniff()
+            self.board.eliminate()
+
+            if self.board.gold_pos:
+                self.state = States.GOLD_KNOWN
+                break
         
         assert(self.board.gold_pos is not None)
         gx, gy = self.board.gold_pos
@@ -239,6 +260,29 @@ class Robot:
         self.move_to(sx, sy)
         self.state = States.FINISHED
         
+    def get_explore_position(self):
+        """
+        returns the (x, y) pair for the best position to visit next
+        (x, y) is guaranteed to be an empty tile (and in pracice this means there is a safe route to it)
+        unvisited, safe positions are ranked by the sum of tile options adjacent to them since higher possibility sums
+        means more expected information from a scent at that location. Ties are broken by the nearest tile to the robot winning.
+        """
+        def distance(x, y):
+            # distance herisitic
+            # return absolute difference between x values and y values instead of computing path length
+            return abs(x - self.x) + abs(y - self.y)
+        
+        max_sum = 0
+        best_x, best_y = self.x, self.y
+        for x in range(WIDTH):
+            for y in range(HEIGHT):
+                sum = 0
+                for _x, _y in adjacent_positions(x, y):
+                    sum += self.board[_x][_y]
+                if sum > max_sum or (sum == max_sum and (distance(x, y) < distance(best_x, best_y))):
+                    max_sum = sum
+                    best_x, best_y = x, y
+        return best_x, best_y
 
     def move_to(self, x, y):
         """
@@ -296,13 +340,12 @@ class Robot:
     
     def sniff(self):
         # TODO: get scent wirelessly
+        raise NotImplementedError
         scent = 7  # temporary
 
         # update knowledge of surrounding board tiles
         self.scents[self.x][self.y] = scent
         self.board.reduce(scent, self.x, self.y)
-
-        self.board.eliminate(self.scents)
 
 
 if __name__ == "__main__":
