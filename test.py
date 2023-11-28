@@ -6,6 +6,13 @@ from wumpus import *
 
 @pytest.fixture
 def board_sample1():
+    """
+    this board in coordinate plane format:
+    0 0 1 1
+    0 1 8 0
+    1 1 0 2
+    0 0 0 0 
+    """
     return [
         [0, 1, 0, 0],
         [0, 1, 1, 0],

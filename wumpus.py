@@ -12,6 +12,8 @@ from queue import Queue
 
 WIDTH = 4
 HEIGHT = 4
+
+# Valid movement directions are one tile horizontally or vertically
 DIRECTIONS = [(1, 0), (0, 1), (-1, 0), (0, -1)]
 
 class Tile(Enum):
@@ -136,8 +138,33 @@ class Robot:
                 col.append(0)
 
     def start(self):
-        raise NotImplementedError
-    
+        while not self.has_gold:
+            # TODO: choose a square to move to, go there, sniff, repeat
+            raise NotImplementedError
+        
+        # now we have the gold, so return to origin
+        self.move_to(0, 0)
+        
+
+    def move_to(self, x, y):
+        """
+        Uses the shortest valid path (if it exists) to move to board[x][y]
+        returns False if unable to make the movement
+        """
+        if not (0 <= x < WIDTH and 0 <= y < HEIGHT):
+            return False
+        
+        path = shortest_path(self.x, self.y, x, y, self.board)
+        if path is None:
+            return False
+        
+        for dx, dy in path:
+            # naieve just uses cw rotation for now
+            while dx != self.dx or dy != self.dy:
+                self.rot_cw()
+            self.forward()
+        return True
+
     def rot_cw(self):
         """
         rotates 90 degrees clockwise
@@ -158,7 +185,6 @@ class Robot:
         tmp_dx = self.dx
         self.dx = -self.dy
         self.dy = tmp_dx
-        
 
         # TODO: use motors to rotate physical bot
         raise NotImplementedError
@@ -184,9 +210,15 @@ class Robot:
             if self.x + dx < WIDTH and self.y + dy < HEIGHT:
                 self.board[self.x + dx][self.y + dy] &= scent
 
-        # we can possibly deduce more at this point based on previous scents
-        # TODO: decide whether to make deduction here or wait until no known empty squares left
+        self.eliminate()
 
+    def eliminate(self):
+        """
+        For each board location, this checks to see if current information about the board
+        state, combined with past scent information, can be used to deduce what the tile contains 
+        through elimination
+        """
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
