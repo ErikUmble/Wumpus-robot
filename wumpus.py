@@ -24,8 +24,81 @@ class Tile(Enum):
     GOLD = 0b100
 
 
+class States(Enum):
+    # State values increase in order of progression into the solution
+    INITIAL = 0
+    GOLD_KNOWN = 1
+    HAS_GOLD = 2
+    FINISHED = 3
 
-def shortest_path(start_x, start_y, end_x, end_y, board): 
+
+class Board(list):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.gold_pos = None
+        self.wumpus_pos = None
+
+        # initialize board if not done already
+        if len(self) > 0:
+            return
+        
+        for x in range(WIDTH):
+            col = []
+            for y in range(HEIGHT):
+                col.append(Tile.UNKNOWN.value)
+            self.append(col)
+
+        
+
+    def reduce(self, scent, x, y):
+        """
+        Given scent (one of Tile values) at a particualar position (x, y)
+        this reduces the possibilities of surrounding tiles based on that information.
+        """
+        for dx, dy in DIRECTIONS:
+            if x + dx < WIDTH and y + dy < HEIGHT:
+                self[x + dx][y + dy] &= scent
+        
+        # since there is just 1 gold and 1 wumpus, we can further reduce from these scents
+        if scent == Tile.GOLD.value or scent == Tile.WUMPUS.value:
+            mask = 0b11111 ^ scent  # all ones except for where there is a 1 in scent
+            
+            # apply mask to every location except for the 4 adjacent to where the scent is
+            for _x in range(WIDTH):
+                for _y in range(HEIGHT):
+                    if abs(x - _x) + abs(y - _y) != 1:
+                        self[_x][_y] &= mask
+            
+
+    def eliminate(self, scents):
+        """
+        For each board location, this checks to see if current information about the board
+        state, combined with past scent information, can be used to deduce what the tile contains 
+        through elimination
+        """
+        def get_unique_pos(tile):
+            possible_pos = []
+            for x in range(WIDTH):
+                if len(possible_pos) > 1:
+                        break
+                for y in range(HEIGHT):
+                    if self[x][y] & tile:
+                        possible_pos.append((x, y))
+            if len(possible_pos) == 1:
+                return possible_pos[0]
+            return None
+        
+        # if we do not know where the wumpus or gold is, see if there is only option for where it can be
+        self.gold_pos = self.gold_pos or get_unique_pos(Tile.GOLD.value)
+        self.wumpus_pos = self.gold_pos or get_unique_pos(Tile.WUMPUS.value)
+
+        # TODO: use scents to eliminate if adjacent tiles to a scent have been determined
+        raise NotImplementedError
+    
+
+def shortest_path(start_x, start_y, end_x, end_y, board : list):
     """
     given a board[WIDTH][HEIGHT] of Tile enum values,
     this returns a list of the form [(dx1, dy1), (dx2, dy2), ...] if there is a path
@@ -112,6 +185,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board):
     return path
 
 
+        
 
 class Robot:
     """
@@ -121,14 +195,27 @@ class Robot:
     surrounding tiles)
     """
 
-    def __init__(self, board, x=0, y=0, dx=0, dy=1, has_gold=False):
-        self.board = board
+    def __init__(self, board=None, x=0, y=0, dx=0, dy=1, state=States.INITIAL):
+        """
+        board[WIDTH][HEIGHT] of int may be specified if the robot has initial knowledge of the terrain - 
+            default: each tile except (0,0) has every possibility
+        x, y initial coordinates
+        dx, dy initial direction
+        state can be specified to initialize the robot at different situations
+
+        """
+        self.board = board or Board()
+        # robot must start at a safe location, so mark it as such
+        # Note: it could start at the gold
+        self.board[x][y] &= 0b1100    
         
         self.x = x
         self.y = y
         self.dx = dx
         self.dy = dy
-        self.has_gold = has_gold
+        self.state = state
+
+        self.start_pos = (x, y)
 
         # initialize scents with 0
         self.scents = []
@@ -138,12 +225,19 @@ class Robot:
                 col.append(0)
 
     def start(self):
-        while not self.has_gold:
+        while self.state.value < States.GOLD_KNOWN:
             # TODO: choose a square to move to, go there, sniff, repeat
             raise NotImplementedError
         
+        assert(self.board.gold_pos is not None)
+        gx, gy = self.board.gold_pos
+        self.move_to(gx, gy)
+        self.state = States.HAS_GOLD
+        
         # now we have the gold, so return to origin
-        self.move_to(0, 0)
+        sx, sy = self.start_pos
+        self.move_to(sx, sy)
+        self.state = States.FINISHED
         
 
     def move_to(self, x, y):
@@ -206,33 +300,13 @@ class Robot:
 
         # update knowledge of surrounding board tiles
         self.scents[self.x][self.y] = scent
-        for dx, dy in DIRECTIONS:
-            if self.x + dx < WIDTH and self.y + dy < HEIGHT:
-                self.board[self.x + dx][self.y + dy] &= scent
+        self.board.reduce(scent, self.x, self.y)
 
-        self.eliminate()
-
-    def eliminate(self):
-        """
-        For each board location, this checks to see if current information about the board
-        state, combined with past scent information, can be used to deduce what the tile contains 
-        through elimination
-        """
-        raise NotImplementedError
+        self.board.eliminate(self.scents)
 
 
 if __name__ == "__main__":
-    # initialize board
-    board = []
-    for x in range(WIDTH):
-        col = []
-        for y in range(HEIGHT):
-            col.append(Tile.UNKNOWN.value)
-        board.append(col)
-    
-    # robot starts in location (0,0) which is safe
-    board[0][0] = Tile.EMPTY.value
-    robot = Robot(board)
+    robot = Robot()
     robot.start()
 
     
