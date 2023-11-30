@@ -15,7 +15,7 @@
               <nuxt-link to="/about" class="text-white hover:text-gray-300">About</nuxt-link>
             </li>
             <li>
-              <nuxt-link to="/blog" class="text-white hover:text-gray-300">Blog</nuxt-link>
+              <nuxt-link to="/logs" class="text-white hover:text-gray-300">Logs</nuxt-link>
             </li>
             <li>
               <nuxt-link to="/demo" class="text-white hover:text-gray-300">Demo</nuxt-link>
