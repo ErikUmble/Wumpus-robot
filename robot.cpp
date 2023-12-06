@@ -108,7 +108,7 @@ void Robot::rot_cw() {
 
     //update direction state (eg. (dx, dy) = (1, 0) becomes (0, -1))
     int tmp_dx = dir.x;
-    dir.x = -dir.y;
+    dir.x = dir.y;
     dir.y = -tmp_dx;
 
 }
