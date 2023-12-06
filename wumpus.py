@@ -98,7 +98,8 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
                 
                 costs[x + dx][y + dy] = costs[x][y] + 1
             
-    
+
+    print(costs)
     # no path if start location has path cost at least as high as max value
     if costs[start_x][start_y] >= MAX_VALUE:
         return None
@@ -309,7 +310,7 @@ class Robot:
         """
         # update direction state (eg. (dx, dy) = (1, 0) becomes (0, -1))
         tmp_dx = self.dx
-        self.dx = -self.dy
+        self.dx = self.dy
         self.dy = -tmp_dx
 
         # TODO: use motors to rotate physical bot
