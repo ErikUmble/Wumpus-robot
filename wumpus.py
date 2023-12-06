@@ -36,11 +36,11 @@ def adjacent_positions(x, y):
     """
     returns a list of (adjacent_x, adjacent_y) pairs that are valid and adjacent to (x, y)
     """
-    positions = []
+    adjacent = []
     for dx, dy in DIRECTIONS:
         if (0 <= x + dx < WIDTH) and (0 <= y + dy < HEIGHT):
-            positions.append((x + dx, y + dy))
-    return positions
+            adjacent.append((x + dx, y + dy))
+    return adjacent
 
 def shortest_path(start_x, start_y, end_x, end_y, board : list):
     """
@@ -59,7 +59,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
         return None
     
     costs = []
-    MAX_VALUE = WIDTH * HEIGHT + 1  # no valid path can take this many moves
+    MAX_VALUE = WIDTH * HEIGHT  # no valid path can take this many moves
     for x in range(WIDTH):
         col = []
         for j in range(HEIGHT):
@@ -103,7 +103,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
     if costs[start_x][start_y] >= MAX_VALUE:
         return None
     
-    # path exists, so compute the cordinates it follows
+    # path exists, so compute the directions it follows
     x, y = start_x, start_y
     path = []
     while costs[x][y] > 0:
@@ -339,13 +339,14 @@ class Robot:
         raise NotImplementedError
     
     def sniff(self):
-        # TODO: get scent wirelessly
-        raise NotImplementedError
-        scent = 7  # temporary
+        scent = self.receive_scent()
 
         # update knowledge of surrounding board tiles
         self.scents[self.x][self.y] = scent
         self.board.reduce(scent, self.x, self.y)
+
+    def receive_scent(self):
+        raise NotImplementedError
 
 
 if __name__ == "__main__":
