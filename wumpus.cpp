@@ -21,6 +21,12 @@ class BitBot: public Robot {
         std::cin >> scent;
         return scent;
     }
+    void shoot() {
+        if (dir == Coordinate(1, 0)) std::cout << "kill e" << std::endl;
+        else if (dir == Coordinate(-1, 0)) std::cout << "kill w" << std::endl;
+        else if (dir == Coordinate(0, 1)) std::cout << "kill n" << std::endl;
+        else if (dir == Coordinate(0, -1)) std::cout << "kill s" << std::endl;
+    }
 
     private:
     typedef Robot super;

@@ -1,6 +1,8 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
+
+#include "board.h"
 #include "robot.h"
 
 Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y), dir(dx, dy), start_pos(x, y), state(state), board(board) {
@@ -13,9 +15,14 @@ Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y)
     }
 
 void Robot::start() {
-    // TODO: determine whether or not to shoot the wumpus
     while (state < GOLD_KNOWN) {
         Coordinate explore_pos = get_explore_pos();
+        // if there are no safe places to explore, shoot the wumpus and explore from that location
+        if (explore_pos.is_null()) {
+            assert(!board.wumpus_pos.is_null()); // we actually need to handle this as well eventually (make best guess as to where to shoot such as for evil difficulty board)
+            explore_pos = board.wumpus_pos;
+            shoot_at(board.wumpus_pos);
+        }
         move_to(explore_pos);
         sniff();
         board.eliminate(scents);
@@ -31,7 +38,6 @@ void Robot::start() {
     move_to(gold_pos);
     state = HAS_GOLD;
     out << "GOT THE GOLD\n";
-
 
     // now we have the gold, so return to origin
     move_to(start_pos);
@@ -78,6 +84,33 @@ Coordinate Robot::get_explore_pos() const {
     }
     return best_pos;
 }
+
+void Robot::rotate(const Coordinate & new_dir) {
+    /*
+    rotates until the robot is facing the given direction
+    */
+    // check if a single ccw rotation would take us to the desired direction
+    if (new_dir.x == -this->dir.y && new_dir.y == this->dir.x) {
+        rot_ccw();
+    }
+    // otherwise, rotate cw until we are facing the desired direction
+    while (!(this->dir == new_dir)) rot_cw();
+}
+
+void Robot::follow_path(const std::vector<Coordinate> & path) {
+    /*
+    given a path of directions, this causes the robot to rotate and move forward
+    into each direction in order
+    */
+    if (path.size() == 0) return;
+    for (const Coordinate & dir: path) {
+        // rotate to face the direction given by the next step in the path
+        rotate(dir);
+        move_forward();
+    }
+    return;
+}
+
 bool Robot::move_to(const Coordinate & c) {
     /*
     Uses the shortest valid path (if it exists) to move to board[x][y]
@@ -93,24 +126,11 @@ bool Robot::move_to(const Coordinate & c) {
         return true;
     }
     std::vector<Coordinate> path = shortest_path(pos, c, board);
-    if (path.size() == 0) {
-        return false;
-    }
+    
     out << "path " << path;
-    for (const Coordinate & dir: path) {
-        // rotate to face the direction given by the next step in the path
-
-        // check if a single ccw rotation would take us to the desired direction
-        if (dir.x == -this->dir.y && dir.y == this->dir.x) {
-            rot_ccw();
-        }
-        // otherwise, rotate cw until we are facing the desired direction
-        while (!(this->dir == dir)) rot_cw();
-        
-        move_forward();
-    }
-    return true;
-
+    follow_path(path);
+    // return true if we actually had to move
+    return path.size() > 0;
 }
 void Robot::rot_cw() {
     /*
@@ -162,10 +182,27 @@ void Robot::sniff() {
     board.reduce(scent, pos);
 }
 
-int Robot::receive_scent() const {
+void Robot::shoot_at(const Coordinate & target_pos) {
     /*
-    listens for the scent at the current position
-    and returns that scent.
+    Calculates the best place to shoot the target from, aims, shoots, and updates the board 
+    This also updates the board now that the position is safe and calls eliminate (so wumpus_pos will be null after this)
+    throws an excpetion if it is not possible to get to an adjacent position to shoot from
     */
-    return 7; // TODO: implement
+
+   // find the path to the target
+    std::vector<Coordinate> path = shortest_path(pos, target_pos, board);
+
+    // empty path means either that there is not a safe route, or we already are at the location
+    assert(path.size() > 0);
+
+    // remove the last step so that we move into the adjacent position
+    Coordinate aim_dir = path.back();
+    path.pop_back();
+
+    follow_path(path);
+    rotate(aim_dir);
+    out << "shooting at " << target_pos.x << ", " << target_pos.y << std::endl;
+    shoot();
+    // zero out the wumpus bit from the target position by setting the bit to 1 then flipping it
+    board.set(target_pos, (board[target_pos] | Tile["WUMPUS"]) ^ Tile["WUMPUS"]);
 }
