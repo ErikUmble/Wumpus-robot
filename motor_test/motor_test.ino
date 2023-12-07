@@ -13,8 +13,8 @@ SAMD_PWM* motor2pin2pwm;
 
 float stdFreq = 1000.0f;
 float zeroDuty = 0.0f;
-float slow = 40.0f;
-float turn = 40.0f;
+float slow = 25.0f;
+float turn = 20.0f;
 
 void setup() {
   // init and set all motor pins to 0
