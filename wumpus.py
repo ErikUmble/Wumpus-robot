@@ -1,4 +1,10 @@
 """
+Note: this file is obsolte and has been replaced by wumpus.ino
+We originally planned to use an arduino nano that supports micropython, but then
+pivoted to one which required c++. 
+"""
+
+"""
 0b0000 empty
 0b0001 breeze (could contain a pit)
 0b0010 stench (could contain a wumpus)
