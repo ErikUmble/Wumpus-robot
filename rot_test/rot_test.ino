@@ -78,19 +78,10 @@ void cw() {
 }
 
 void loop() {
-  delay(5000);
-  allForward(slow);
-  delay(1000);
-  allStop();
-  delay(1000);
-  allBackward(slow);
-  delay(1000);
-  allStop();
-  delay(1000);
-  cw();
-  delay(1000);
-  ccw();
-  delay(1000);
-  allStop();
+  for (int i = 0; i < 10; i++) {
+    cw();
+    delay(500);
+  }
+  delay(20000);
 }
 
