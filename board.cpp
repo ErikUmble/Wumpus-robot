@@ -151,34 +151,47 @@ Coordinate Board::get_unique_pos(int tile) {
         return Coordinate();
 }
 
-void Board::eliminate(std::vector<std::vector<int> > scents) {
+int Board::deduce(const Coordinate & pos, const std::vector<std::vector<int> > scents) {
+    /*
+    the the tile at position pos can be fully determined by the scents provided, this returns
+    that tile value,
+    otherwise it returns -1
+    */
+
+    // use scents to eliminate if adjacent tiles to a scent have been determined
+    // intuition: if a tile had the scent of a pit but three adjacent tiles are known to not be pits, then make
+    // the one possible title a guaranteed pit (same for wumpus and gold)
+    if ((scents[pos.x][pos.y] & 0b10000) == 0) return -1; // skip unsniffed locations 
+    for (const int tile: {Tile["PIT"], Tile["WUMPUS"], Tile["GOLD"]}) {
+        
+        if ((scents[pos.x][pos.y] & tile) == 0) continue; // skip this tile type since we did not sense it here
+        
+        std::vector<Coordinate> possible_pos;
+
+        for (const Coordinate adj: adjacent_positions(pos)) {
+            if (board[adj.x][adj.y] & tile)
+                possible_pos.push_back(adj);
+        }
+        if (possible_pos.size() == 1) {
+            return tile;
+        }
+    }
+    return - 1;
+}
+
+void Board::eliminate(const std::vector<std::vector<int> > & scents) {
     /*
     For each board location, this checks to see if current information about the board
     state, combined with past scent information, can be used to deduce what the tile contains 
     through elimination
     */
 
-    // use scents to eliminate if adjacent tiles to a scent have been determined
-    // intuition: if a tile had the scent of a pit but three adjacent tiles are known to not be pits, then make
-    // the one possible title a guaranteed pit (same for wumpus and gold)
-    // do this for every tile with a nonzero scent
+    // deduce at each location
+    int tile;
     for (int x = 0; x < WIDTH; x++) {
         for (int y = 0; y < HEIGHT; y++) {
-            if ((scents[x][y] & 0b1111) == 0) continue; // skip unsniffed locations 
-            for (const int tile: {Tile["PIT"], Tile["WUMPUS"], Tile["GOLD"]}) {
-                
-                if ((scents[x][y] & tile) == 0) continue; // skip this tile type since we did not sense it here
-                
-                std::vector<Coordinate> possible_pos;
-
-                for (const Coordinate adj: adjacent_positions(Coordinate(x, y))) {
-                    if (board[adj.x][adj.y] & tile)
-                        possible_pos.push_back(adj);
-                }
-                if (possible_pos.size() == 1) {
-                    board[possible_pos[0].x][possible_pos[0].y] = tile;
-                }
-            }
+            tile = deduce(Coordinate(x, y), scents);
+            if (tile > -1) board[x][y] = tile;
         }
     }
 

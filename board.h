@@ -49,12 +49,13 @@ class Board {
         return board[c.x][c.y];
     }
     void reduce(int scent, const Coordinate & pos);
-    void eliminate(std::vector<std::vector<int> > scents);
+    void eliminate(const std::vector<std::vector<int> > & scents);
 
     friend std::ostream & operator<<(std::ostream & out, const Board & board);
     
     private:
     Coordinate get_unique_pos(int tile);
+    int deduce(const Coordinate & pos, const std::vector<std::vector<int> > scents);
 
     std::vector<std::vector<int> > board;
     Coordinate gold_pos, wumpus_pos;
