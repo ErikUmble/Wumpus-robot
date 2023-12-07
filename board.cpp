@@ -1,10 +1,20 @@
 
 #include <vector>
+#include <iostream>
 #include <queue>
+#include <cassert>
 
 #include "board.h"
 
-std::vector<Coordinate> DIRECTIONS = {Coordinate(0, 1), Coordinate(1, 0), Coordinate(0, -1), Coordinate(-1, 0)};
+
+std::ofstream out("output.txt");
+
+// Note: when 0b1000 is sensed, this means the current tile contains gold and says nothing about surrounding tiles
+// we still regard 0b100 to be tile gold value
+std::unordered_map<std::string, int> Tile = {{"UNKNOWN", 0b111}, {"EMPTY", 0b000}, {"PIT", 0b001}, {"WUMPUS", 0b010}, {"GOLD", 0b100}};
+const std::vector<Coordinate> DIRECTIONS = {Coordinate(0, 1), Coordinate(1, 0), Coordinate(0, -1), Coordinate(-1, 0)};
+
+
 std::vector<Coordinate> adjacent_positions(const Coordinate & pos) {
     std::vector<Coordinate> adjacent;
     for (const Coordinate & dir: DIRECTIONS) {
@@ -15,7 +25,7 @@ std::vector<Coordinate> adjacent_positions(const Coordinate & pos) {
     return adjacent;
 }
 
-std::vector<Coordinate> shortest_path(Coordinate start, Coordinate end, Board board) {
+std::vector<Coordinate> shortest_path(const Coordinate & start, const Coordinate  &end, const Board & board) {
     /*
     given a board[WIDTH][HEIGHT] of Tile enum values,
     this returns a list of the form [(dx1, dy1), (dx2, dy2), ...] if there is a path
@@ -52,8 +62,8 @@ std::vector<Coordinate> shortest_path(Coordinate start, Coordinate end, Board bo
         Coordinate c = q.front();
         q.pop();
 
-        // do not consider path through unknown tile (Note empty = 0 and gold = 8)
-        if (board[c] & 0b111) {
+        // do not consider path through unsafe tile (Note empty = 0 and gold = 8)
+        if (board[c] & 0b011) {
             // set cost to 1 more than max value so e don't consider it again
             costs[c.x][c.y] = MAX_VALUE + 1;
             continue;
@@ -73,7 +83,6 @@ std::vector<Coordinate> shortest_path(Coordinate start, Coordinate end, Board bo
     }
     // no path if start location has path cost at least as high as max value
     if (costs[start.x][start.y] >= MAX_VALUE) return path;
-
     // path exists, so compute the directions it follows
     Coordinate c = start;
     while (costs[c.x][c.y] > 0) {
@@ -97,11 +106,15 @@ void Board::reduce(int scent, const Coordinate & pos) {
     Given scent (one of Tile values) at a particualar position (x, y)
     this reduces the possibilities of surrounding tiles based on that information. 
     */
-   for (const Coordinate & dir: DIRECTIONS) {
-         int x = pos.x + dir.x, y = pos.y + dir.y;
-         if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT) {
-              board[x][y] &= scent;
-         }
+   // Note: when 0b1000 is sensed, this means the current tile contains gold and says nothing about surrounding tiles
+    if (scent == 0b1000) {
+        board[pos.x][pos.y] = Tile["GOLD"];
+        gold_pos = pos;
+        return;
+    }
+   
+   for (const Coordinate c: adjacent_positions(pos)) {
+       board[c.x][c.y] &= scent;
    }
 
    // since there is just 1 gold and 1 wumpus, we can further reduce from these scents
@@ -122,19 +135,23 @@ void Board::reduce(int scent, const Coordinate & pos) {
 Coordinate Board::get_unique_pos(int tile) {
     std::vector<Coordinate> possible_pos;
     for (int x = 0; x < WIDTH; x++) {
-        if (possible_pos.size() > 1)
+        
+        for (int y = 0; y < HEIGHT; y++){
+            if (possible_pos.size() > 1)
             break;
-        for (int y = 0; y < HEIGHT; y++)
             if (board[x][y] & tile)
                 possible_pos.push_back(Coordinate(x, y));
+        }  
     }
-    if (possible_pos.size() == 1)
+    if (possible_pos.size() == 1) {
         return possible_pos[0];
+    }
+        
     else
         return Coordinate();
 }
 
-void Board::eliminate(int const ** scents) {
+void Board::eliminate(std::vector<std::vector<int> > scents) {
     /*
     For each board location, this checks to see if current information about the board
     state, combined with past scent information, can be used to deduce what the tile contains 
@@ -147,8 +164,11 @@ void Board::eliminate(int const ** scents) {
     // do this for every tile with a nonzero scent
     for (int x = 0; x < WIDTH; x++) {
         for (int y = 0; y < HEIGHT; y++) {
-            if (scents[x][y] == 0) continue;
+            if ((scents[x][y] & 0b1111) == 0) continue; // skip unsniffed locations 
             for (const int tile: {Tile["PIT"], Tile["WUMPUS"], Tile["GOLD"]}) {
+                
+                if ((scents[x][y] & tile) == 0) continue; // skip this tile type since we did not sense it here
+                
                 std::vector<Coordinate> possible_pos;
 
                 for (const Coordinate adj: adjacent_positions(Coordinate(x, y))) {
@@ -165,9 +185,41 @@ void Board::eliminate(int const ** scents) {
     // if we do not know where the wumpus or gold is, see if there is only option for where it can be
     if (wumpus_pos.is_null()) {
         wumpus_pos = get_unique_pos(Tile["WUMPUS"]);
+        if (!wumpus_pos.is_null()) board[wumpus_pos.x][wumpus_pos.y] = Tile["WUMPUS"];
     }
     if (gold_pos.is_null()) {
         gold_pos = get_unique_pos(Tile["GOLD"]);
+        if (!gold_pos.is_null()) board[gold_pos.x][gold_pos.y] = Tile["GOLD"];
     }
 
+}
+
+
+std::ostream & operator<<(std::ostream & out, const Board & board) {
+    /*
+    prints out the board with (0, 0) in lower left corner
+    */
+   out << board.board;
+   return out;
+}
+std::ostream & operator<<(std::ostream & out, const std::vector<std::vector<int> > & v) {
+    /*
+    prints of the 2d vector v with the shap of board with (0, 0) in lower left corner
+    */
+    assert(v.size() == WIDTH && v[0].size() == HEIGHT);
+    for (int y = HEIGHT - 1; y >= 0; y--) {
+         for (int x = 0; x < WIDTH; x++) {
+              out << v[x][y] << " ";
+         }
+         out << std::endl;
+    }
+    return out;
+}
+
+std::ostream & operator<<(std::ostream & out, std::vector<Coordinate> v) {
+    for (const Coordinate & c: v) {
+        out << c << " ";
+    }
+    out << std::endl;
+    return out;
 }

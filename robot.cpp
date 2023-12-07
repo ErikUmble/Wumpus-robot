@@ -1,16 +1,15 @@
 #include <cassert>
+#include <iostream>
+#include <vector>
 #include "robot.h"
 
-Robot::Robot(int x, int y, int dx, int dy, Board board=Board(), State state=INITIAL) : pos(x, y), dir(dx, dy), start_pos(x, y), board(board), state(state) {
+Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y), dir(dx, dy), start_pos(x, y), state(state), board(board) {
         // robot must start at a valid location, so mark it as such
+        // Note: it could start at gold
+        this->board.set(start_pos, board.get(start_pos) & 0b1100);
 
-        // initialize scents to 0
-        for (int x = 0; x < WIDTH; x++) {
-            int col[HEIGHT];
-            scents[x] = col;
-            for (int y = 0; y < HEIGHT; y++)
-                scents[x][y] = 0;
-        }
+        // initialize scents to 0b10000 (not sniffed yet)
+        scents = std::vector<std::vector<int> >(WIDTH, std::vector<int>(HEIGHT, 0b10000));
     }
 
 void Robot::start() {
@@ -27,9 +26,12 @@ void Robot::start() {
         
     }
     assert(!board.gold_pos.is_null());
+    out << "FOUND GOLD\n";
     Coordinate gold_pos = board.gold_pos;
     move_to(gold_pos);
     state = HAS_GOLD;
+    out << "GOT THE GOLD\n";
+
 
     // now we have the gold, so return to origin
     move_to(start_pos);
@@ -51,17 +53,26 @@ Coordinate Robot::get_explore_pos() const {
     unvisited, safe positions are ranked by the sum of tile options adjacent to them since higher possibility sums
     means more expected information from a scent at that location. Ties are broken by the nearest tile to the robot winning.
     */
+    out << "current board knowledge:\n" << board;
     int max_sum = 0;
     Coordinate best_pos;
     for (int x = 0; x < WIDTH; x++) {
         for (int y = 0; y < HEIGHT; y++) {
+            Coordinate potential(x, y);
+            // skip tiles that are not known to be safe
+            if (board.get(potential) & 0b011) continue;
+
+            // skip tiles that we already sniffed at 
+            if (!(scents[x][y] & 0b10000)) continue;
+            
+
             int sum = 0;
-            for (const Coordinate adj:adjacent_positions(pos)) {
+            for (const Coordinate adj:adjacent_positions(potential)) {
                 sum += board[adj];
             }
-            if (sum > max_sum || (sum == max_sum && distance(pos, Coordinate(x, y)) < distance(pos, best_pos))) {
+            if (sum > max_sum || (sum == max_sum && distance(pos, potential) < distance(pos, best_pos))) {
                 max_sum = sum;
-                best_pos = Coordinate(x, y);
+                best_pos = potential;
             }
         }
     }
@@ -72,11 +83,12 @@ bool Robot::move_to(const Coordinate & c) {
     Uses the shortest valid path (if it exists) to move to board[x][y]
     returns False if unable to make the movement
     */
-    if (!(0 <= c.x && c.x < WIDTH && 0 <= c.y && c.y < HEIGHT)) {
+   out << "moving to " << c.x << ", " << c.y << std::endl;
+    if (!((0 <= c.x) && (c.x < WIDTH) && (0 <= c.y) && (c.y < HEIGHT))) {
         // invalid location
         return false;
     }
-    if (c.x == pos.x && c.y == pos.y) {
+    if (c == pos) {
         // already at the desired location
         return true;
     }
@@ -84,16 +96,17 @@ bool Robot::move_to(const Coordinate & c) {
     if (path.size() == 0) {
         return false;
     }
+    out << "path " << path;
     for (const Coordinate & dir: path) {
         // rotate to face the direction given by the next step in the path
-        if (dir.x == pos.x + 1) {
-            rot_cw();
-        } else if (dir.x == pos.x - 1) {
+
+        // check if a single ccw rotation would take us to the desired direction
+        if (dir.x == -this->dir.y && dir.y == this->dir.x) {
             rot_ccw();
-        } else if (dir.y == pos.y + 1) {
-            rot_cw();
-            rot_cw();
         }
+        // otherwise, rotate cw until we are facing the desired direction
+        while (!(this->dir == dir)) rot_cw();
+        
         move_forward();
     }
     return true;
@@ -133,14 +146,18 @@ void Robot::move_forward() {
     */
     pos.x += dir.x;
     pos.y += dir.y;
+    out << "moved to " << pos.x << ", " << pos.y << std::endl;
+
+    assert(pos.in_bounds());
 }
 void Robot::sniff() {
     /*
     calls receive_scent, stores that scent, and uses it for deduction
     Override receive_scent, not sniff for different system subclasses
     */
-    
+    out << "sniffing at " << pos.x << ", " << pos.y << std::endl;
     int scent = receive_scent();
+    out << "received scent " << scent << std::endl;
     scents[pos.x][pos.y] = scent;
     board.reduce(scent, pos);
 }

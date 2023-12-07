@@ -25,7 +25,7 @@ class NanoBot: public Robot {
 
     private:
     typedef Robot super;
-}
+};
 
 void setup() {
     NanoBot robot;
