@@ -2,6 +2,11 @@
 
 #include "robot.h"
 
+BLEService nanoBotService("180A"); // BLE Service
+// BLE Characteristic for transmitting scent - custom 128-bit UUID, read and writable by central
+BLEByteCharacteristic scentCharacteristic("2A57", BLERead | BLEWrite);
+
+
 class NanoBot: public Robot {
     public:
     void rot_cw() {
@@ -20,7 +25,12 @@ class NanoBot: public Robot {
         super::move_forward();
     }
     void receive_scent() {
-
+        BLEDevice central = BLE.central();
+        // todo: consider writing a value to indicate request for scent
+        // wait until a scent is written to the Bluetooth service characteristic
+        while (!scentCharacteristic.written());
+        int scent = scentCharacteristic.value();
+        return scent;
     }
 
     private:
@@ -29,6 +39,21 @@ class NanoBot: public Robot {
 
 void setup() {
     NanoBot robot;
+    Serial.begin(9600);
+    while (!Serial);
+
+    // initialize Bluetooth connection
+    if (!BLE.begin()) {
+        Serial.println("starting Bluetooth® Low Energy failed!");
+        while (1);
+    }
+
+    // set advertised local name and service UUID
+    BLE.setLocalName("Nano 33 IoT");
+    BLE.setAdvertisedService(nanoBotService);
+    BLE.addServie(nanoBotService);
+    // initialize to 0
+    scentCharacteristic.writeValue(0);
 }
 
 void loop() {
