@@ -85,8 +85,8 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
     while not q.empty():
         x, y = q.get()
 
-        # do not consider path through unknown tile (Note empty = 0 and gold = 8)
-        if board[x][y] & 0b111:
+        # do not consider path through potentially dangerous tile (Note empty = 0 and gold = 8)
+        if board[x][y] & 0b011 != 0:
             # set this cost to 1 more than max value so we don't try to consider it again
             costs[x][y] = MAX_VALUE + 1
             continue
@@ -105,7 +105,6 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
                 costs[x + dx][y + dy] = costs[x][y] + 1
             
 
-    print(costs)
     # no path if start location has path cost at least as high as max value
     if costs[start_x][start_y] >= MAX_VALUE:
         return None
