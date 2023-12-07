@@ -32,6 +32,11 @@ class NanoBot: public Robot {
         int scent = scentCharacteristic.value();
         return scent;
     }
+    void shoot() {
+        // send 111 over bluetooth to indicate shooting 
+        scentCharacteristic.writeValue(111);
+        delay(2000);
+    }
 
     private:
     typedef Robot super;
@@ -57,6 +62,11 @@ void setup() {
 }
 
 void loop() {
-    robot.start();
+    //robot.start();
+    for (unsigned int i=0; i < 3; i++) {
+        while (!scentCharacteristic.written());
+        int scent = scentCharacteristic.value();
+        scnetCharacteristic.writeValue(scent);
+    }
     while (1);
 }
