@@ -15,6 +15,12 @@
               <nuxt-link to="/about" class="text-white hover:text-gray-300">About</nuxt-link>
             </li>
             <li>
+              <nuxt-link to="/design" class="text-white hover:text-gray-300">Design</nuxt-link>
+            </li>
+            <li>
+              <nuxt-link to="/discussion" class="text-white hover:text-gray-300">Discussion</nuxt-link>
+            </li>
+            <li>
               <nuxt-link to="/logs" class="text-white hover:text-gray-300">Logs</nuxt-link>
             </li>
             <li>
@@ -24,12 +30,14 @@
         </nav>
       </div>
     </header>
+
     <body>
       <div>
         <!--Each page template automatically goes here-->
         <NuxtPage />
       </div>
     </body>
+
     <footer class="py-4 px-8 bg-gray-800 text-center">
         <p>Minds & Machines 2023 - Joel M. & Erik U.</p>
     </footer>
