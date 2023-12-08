@@ -26,17 +26,34 @@ class NanoBot: public Robot {
         super::move_forward();
     }
     int receive_scent() {
-        BLEDevice central = BLE.central();
-        // todo: consider writing a value to indicate request for scent
-        // wait until a scent is written to the Bluetooth service characteristic
-        while (!scentCharacteristic.written());
-        int scent = scentCharacteristic.value();
-        return scent;
+        /*
+        Writes 0b111111 = 0x3F = '?' (query) to indicate waiting for a scent
+        then returns the next value after that changes
+        */
+        while (true) {
+            BLEDevice central = BLE.central();
+            if (central) {
+                while(central.connected()) {
+                    scentCharacteristic.writeValue('?');
+                    while (scentCharacteristic.value() == '?');
+                    return scentCharacteristic.value();
+                }
+            }
+        }
     }
     void shoot() {
-        // send 111 over bluetooth to indicate shooting 
-        scentCharacteristic.writeValue(111);
-        delay(2000);
+        // send 0b1000000 = 0x40 = '@' (target) to indicate shooting
+        // wait for aknowledgement (any other value) before continuing
+        
+        while (true) {
+            BLEDevice central = BLE.central();
+            if (central) {
+            while(central.connected()) {
+                scentCharacteristic.writeValue('@');
+                while (scentCharacteristic.value() == '@');
+                return;
+            }
+        }
     }
 
     private:
