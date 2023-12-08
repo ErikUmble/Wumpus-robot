@@ -24,11 +24,15 @@
         </nav>
       </div>
     </header>
-
-    <div>
-      <!--Each page template automatically goes here-->
-      <NuxtPage />
-    </div>
+    <body>
+      <div>
+        <!--Each page template automatically goes here-->
+        <NuxtPage />
+      </div>
+    </body>
+    <footer class="py-4 px-8 bg-gray-800 text-center">
+        <p>Minds & Machines 2023 - Joel M. & Erik U.</p>
+    </footer>
   </div>
 </template>
 

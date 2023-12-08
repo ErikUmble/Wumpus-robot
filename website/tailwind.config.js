@@ -14,21 +14,7 @@ export default {
     plugins: [require("daisyui")],
     daisyui: {
       themes: [
-        "dim",
-        {
-          custom: {
-            primary: "#4169e1",
-            secondary: "#6e5393",
-            accent: "#617dff",
-            neutral: "#6b7280",
-            "base-100": "#374151",
-            info: "#a77edf",
-            success: "#36d399",
-            warning: "#fbbd23",
-            error: "#f87272",
-          },
-        },
-        
+        "dim",      
       ],
     },
   };
