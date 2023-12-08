@@ -6,9 +6,6 @@
 #include <string>
 #include <iostream>
 
-#include <fstream>
-extern std::ofstream out;
-
 const int WIDTH = 4, HEIGHT = 4;
 
 class Coordinate {

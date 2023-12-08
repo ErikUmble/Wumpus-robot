@@ -6,9 +6,6 @@
 
 #include "board.h"
 
-
-std::ofstream out("output.txt");
-
 // Note: when 0b1000 is sensed, this means the current tile contains gold and says nothing about surrounding tiles
 // we still regard 0b100 to be tile gold value
 std::unordered_map<std::string, int> Tile = {{"UNKNOWN", 0b111}, {"EMPTY", 0b000}, {"PIT", 0b001}, {"WUMPUS", 0b010}, {"GOLD", 0b100}};

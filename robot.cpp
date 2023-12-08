@@ -5,14 +5,25 @@
 #include "board.h"
 #include "robot.h"
 
-Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y), dir(dx, dy), start_pos(x, y), state(state), board(board) {
-        // robot must start at a valid location, so mark it as such
-        // Note: it could start at gold
-        this->board.set(start_pos, board.get(start_pos) & 0b1100);
+Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y), dir(dx, dy), start_pos(x, y), state(state), board(board), log_actions(false), log_out(std::cout.rdbuf()) {
+    // Note that although cout is set as the log stream, it will not be written to until enable_logs is called
 
-        // initialize scents to 0b10000 (not sniffed yet)
-        scents = std::vector<std::vector<int> >(WIDTH, std::vector<int>(HEIGHT, 0b10000));
-    }
+    // robot must start at a valid location, so mark it as such
+    // Note: it could start at gold
+    this->board.set(start_pos, board.get(start_pos) & 0b1100);
+
+    // initialize scents to 0b10000 (not sniffed yet)
+    scents = std::vector<std::vector<int> >(WIDTH, std::vector<int>(HEIGHT, 0b10000));
+
+}
+
+void Robot::enable_logs(std::ostream & out) {
+    /*
+    call this with an output stream to begin logging actions to that stream
+    */
+    std::ostream log_out(out.rdbuf());
+    log_actions = true;
+}
 
 void Robot::start() {
     while (state < GOLD_KNOWN) {
@@ -40,14 +51,14 @@ void Robot::start() {
         }
     }
     assert(!board.gold_pos.is_null());
-    out << "FOUND GOLD\n";
+    if (log_actions) log("FOUND GOLD");
     Coordinate gold_pos = board.gold_pos;
     while(!move_to(gold_pos)) {
         // continue yoloing as necessary until the path to gold is clear
         move_to(yolo());
     }
     state = HAS_GOLD;
-    out << "GOT THE GOLD\n";
+    if (log_actions) log("RETRIEVED GOLD");
 
     // now we have the gold, so return to origin
     move_to(start_pos);
@@ -69,7 +80,7 @@ Coordinate Robot::get_explore_pos() const {
     unvisited, safe positions are ranked by the sum of tile options adjacent to them since higher possibility sums
     means more expected information from a scent at that location. Ties are broken by the nearest tile to the robot winning.
     */
-    out << "current board knowledge:\n" << board;
+    if (log_actions) log_out << "current board knowledge:\n" << board << std::endl;
     int max_sum = 0;
     Coordinate best_pos;
     for (int x = 0; x < WIDTH; x++) {
@@ -81,7 +92,6 @@ Coordinate Robot::get_explore_pos() const {
             // skip tiles that we already sniffed at 
             if (!(scents[x][y] & 0b10000)) continue;
             
-
             int sum = 0;
             for (const Coordinate adj:adjacent_positions(potential)) {
                 sum += board[adj];
@@ -126,7 +136,7 @@ bool Robot::move_to(const Coordinate & c) {
     Uses the shortest valid path (if it exists) to move to board[x][y]
     returns False if unable to make the movement
     */
-   out << "moving to " << c.x << ", " << c.y << std::endl;
+    if (log_actions) log("moving to " + std::to_string(c.x) + ", " + std::to_string(c.y));
     if (!((0 <= c.x) && (c.x < WIDTH) && (0 <= c.y) && (c.y < HEIGHT))) {
         // invalid location
         return false;
@@ -137,7 +147,6 @@ bool Robot::move_to(const Coordinate & c) {
     }
     std::vector<Coordinate> path = shortest_path(pos, c, board);
     
-    out << "path " << path;
     follow_path(path);
     // return true if we actually had to move
     return path.size() > 0;
@@ -176,7 +185,6 @@ void Robot::move_forward() {
     */
     pos.x += dir.x;
     pos.y += dir.y;
-    out << "moved to " << pos.x << ", " << pos.y << std::endl;
 
     assert(pos.in_bounds());
 }
@@ -185,9 +193,8 @@ void Robot::sniff() {
     calls receive_scent, stores that scent, and uses it for deduction
     Override receive_scent, not sniff for different system subclasses
     */
-    out << "sniffing at " << pos.x << ", " << pos.y << std::endl;
     int scent = receive_scent();
-    out << "received scent " << scent << std::endl;
+    if (log_actions) log("received scent " + std::to_string(scent) + " at " + std::to_string(pos.x) + ", " + std::to_string(pos.y));
     scents[pos.x][pos.y] = scent;
     board.reduce(scent, pos);
 }
@@ -211,7 +218,8 @@ void Robot::shoot_at(const Coordinate & target_pos) {
 
     follow_path(path);
     rotate(aim_dir);
-    out << "shooting at " << target_pos.x << ", " << target_pos.y << std::endl;
+
+    if (log_actions) log("shooting at " + std::to_string(target_pos.x) + ", " + std::to_string(target_pos.y));
     shoot();
     if (state < USED_ARROW) state = USED_ARROW;
     // zero out the wumpus bit from the target position by setting the bit to 1 then flipping it
@@ -231,7 +239,7 @@ Coordinate Robot::yolo() {
     Note: this should only be called if the robot knows the board is solvable
     Note: calling yolo multiple times in a row is acceptable
     */
-    out << "yoloing\n";
+    if (log_actions) log("resorting to yolo - this board had better be solvable");
     // first, find out all the positions we know absolutely are bad to move into
     std::vector<std::vector<bool> > forbidden(WIDTH, std::vector<bool>(HEIGHT, false));
     for (unsigned int x = 0; x < WIDTH; x++) {
@@ -249,11 +257,6 @@ Coordinate Robot::yolo() {
         for (unsigned int y = 0; y < HEIGHT; y++) {
             if ((scents[x][y] & 0b10000) && !forbidden[x][y] && (shortest_path(pos, Coordinate(x, y), board).size() > 0)) potential_safe.push_back(Coordinate(x, y));
         }
-    }
-    // tmp print out the potential safe positions
-    out << "potential safe positions:\n";
-    for (const Coordinate & c:potential_safe) {
-        out << c.x << ", " << c.y << std::endl;
     }
 
     Coordinate risk_pos;
@@ -281,7 +284,7 @@ Coordinate Robot::yolo() {
     if (potential_safe.size() == 0) {
         // this board is guaranteed not solvable
         // don't let the wumpus have the last laugh :)
-        out << "here :(\n";
+        if (log_actions) log("this board is not solvable :(");
         while (true) rot_cw();
     }
     else {
