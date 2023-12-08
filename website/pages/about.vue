@@ -1,11 +1,9 @@
 <template>
-<body class="">
+<PageTitle>
+    <template v-slot:title>Wumpus World Problem</template>
+    <template v-slot:subtitle>An AI challenge in robotic perception and logical decision-making</template>
+</PageTitle>
 
-<header class="py-8 px-8 bg-base">
-    <!-- Your header content goes here -->
-    <h1 class="text-4xl font-bold text-center text-white">Wumpus World Problem</h1>
-    <p class="mt-2 text-lg text-center">An AI challenge in robotic perception and logical decision-making</p>
-</header>
 
 <main class="container mx-auto py-8 px-4">
     <!-- Your main content goes here -->
@@ -38,5 +36,4 @@
 
 </main>
 
-</body>
 </template>
