@@ -37,7 +37,6 @@ std::vector<Coordinate> shortest_path(const Coordinate & start, const Coordinate
 
     Uses Dijikstra's shortest path algorithm
     */
-
    std::vector<Coordinate> path;
    // end early if start == end, or 
    if ((start.x >= WIDTH) || (end.x >= WIDTH) || (start.y >= HEIGHT) || (end.y >= HEIGHT)
@@ -153,30 +152,30 @@ Coordinate Board::get_unique_pos(int tile) {
 
 int Board::deduce(const Coordinate & pos, const std::vector<std::vector<int> > scents) {
     /*
-    the the tile at position pos can be fully determined by the scents provided, this returns
+    if the tile at position pos can be fully determined by the scents provided, this returns
     that tile value,
     otherwise it returns -1
     */
 
-    // use scents to eliminate if adjacent tiles to a scent have been determined
-    // intuition: if a tile had the scent of a pit but three adjacent tiles are known to not be pits, then make
-    // the one possible title a guaranteed pit (same for wumpus and gold)
-    if ((scents[pos.x][pos.y] & 0b10000) == 0) return -1; // skip unsniffed locations 
-    for (const int tile: {Tile["PIT"], Tile["WUMPUS"], Tile["GOLD"]}) {
-        
-        if ((scents[pos.x][pos.y] & tile) == 0) continue; // skip this tile type since we did not sense it here
-        
-        std::vector<Coordinate> possible_pos;
-
-        for (const Coordinate adj: adjacent_positions(pos)) {
-            if (board[adj.x][adj.y] & tile)
-                possible_pos.push_back(adj);
-        }
-        if (possible_pos.size() == 1) {
-            return tile;
+    // intuition: consider adjacent positions, and if any of them sensed something that is definitely 
+    // not at any of its other adjacent positions, then it must be at the current position
+    for (const Coordinate & adj: adjacent_positions(pos)) {
+        if (scents[adj.x][adj.y] == 0) return 0; // must be safe if adjacent tile had no scent
+        if (scents[adj.x][adj.y] & 0b10000) continue; // skip if adjacent tile has not been sniffed yet
+        for (const int tile: {Tile["PIT"], Tile["WUMPUS"], Tile["GOLD"]}) {
+            if ((scents[adj.x][adj.y] & tile) == 0) continue; // skip if this tile type was not scented here
+            std::vector<Coordinate> possible_pos;
+            for (const Coordinate neighbor: adjacent_positions(adj)) {
+                // add neighbors that are not the current tile 
+                if ((board[neighbor.x][neighbor.y] & tile) && !(neighbor == pos)) possible_pos.push_back(neighbor);
+            }
+            if (possible_pos.size() == 0) {
+                // no other options for where that scent could be coming from
+                return tile;
+            }
         }
     }
-    return - 1;
+    return -1;
 }
 
 void Board::eliminate(const std::vector<std::vector<int> > & scents) {
@@ -186,12 +185,27 @@ void Board::eliminate(const std::vector<std::vector<int> > & scents) {
     through elimination
     */
 
-    // deduce at each location
-    int tile;
+    // use scents to eliminate if adjacent tiles to a scent have been determined
+    // intuition: if a tile had the scent of a pit but three adjacent tiles are known to not be pits, then make
+    // the one possible title a guaranteed pit (same for wumpus and gold)
+    // do this at each location that has recieved a nonzero scent
     for (int x = 0; x < WIDTH; x++) {
         for (int y = 0; y < HEIGHT; y++) {
-            tile = deduce(Coordinate(x, y), scents);
-            if (tile > -1) board[x][y] = tile;
+            if ((scents[x][y] & 0b1111) == 0) continue; // skip unsniffed locations 
+            for (const int tile: {Tile["PIT"], Tile["WUMPUS"], Tile["GOLD"]}) {
+
+                if ((scents[x][y] & tile) == 0) continue; // skip this tile type since we did not sense it here
+
+                std::vector<Coordinate> possible_pos;
+
+                for (const Coordinate adj: adjacent_positions(Coordinate(x, y))) {
+                    if (board[adj.x][adj.y] & tile)
+                        possible_pos.push_back(adj);
+                }
+                if (possible_pos.size() == 1) {
+                    board[possible_pos[0].x][possible_pos[0].y] = tile;
+                }
+            }
         }
     }
 

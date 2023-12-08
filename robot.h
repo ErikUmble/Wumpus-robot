@@ -13,11 +13,13 @@ senses the robot recieves (and stores) from moderator
 0b10000 not sniffed yet
 */
 
-enum State {INITIAL, GOLD_KNOWN, HAS_GOLD, FINISHED};
+// Note: USED_ARROW comes before GOLD_KNOWN, because we only shoot if we have not found gold yet
+enum State {INITIAL, USED_ARROW, GOLD_KNOWN, HAS_GOLD, FINISHED};
 
 class Robot {
     public:
     Robot(int x, int y, int dx, int dy, Board board=Board(), State state=INITIAL);
+    Robot(): Robot(0, 0, 1, 0) {};
     
     // core actions
     void start();
@@ -31,14 +33,15 @@ class Robot {
     virtual void rot_ccw();
     virtual void move_forward();
     // receive_scent must return the scent at the current position pos (such as by listening to cin or bluetooth).
-    virtual int receive_scent() const {throw std::runtime_error("receive_scent must be implemented by subclass");};
+    virtual int receive_scent() const {throw std::runtime_error("receive_scent must be implemented by subclass");}
     // shoot must shoot at the target position (such as by printing a message or physically releasing an arrow).
-    virtual void shoot() {throw std::runtime_error("shoot must be implemented by subclass");};
+    virtual void shoot() {throw std::runtime_error("shoot must be implemented by subclass");}
 
     protected:
     // utilities
     void rotate(const Coordinate & new_dir);
     void follow_path(const std::vector<Coordinate> & path);
+    Coordinate yolo();
 
     Coordinate pos, dir;
     const Coordinate start_pos;

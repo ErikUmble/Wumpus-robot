@@ -19,9 +19,17 @@ void Robot::start() {
         Coordinate explore_pos = get_explore_pos();
         // if there are no safe places to explore, shoot the wumpus and explore from that location
         if (explore_pos.is_null()) {
-            assert(!board.wumpus_pos.is_null()); // we actually need to handle this as well eventually (make best guess as to where to shoot such as for evil difficulty board)
-            explore_pos = board.wumpus_pos;
-            shoot_at(board.wumpus_pos);
+            if (!board.wumpus_pos.is_null() && state < USED_ARROW) {
+                // we know where the wumpus is, and still have an arrow to use
+                explore_pos = board.wumpus_pos;
+                shoot_at(board.wumpus_pos);
+            }
+            else {
+                // we are in a situation where we must enter a potentially dangerous tile
+                // so we will just yolo it and hope for the best
+                // Note: this can only arise in boards where the robot must be able to know that it is solvable for it to be solvable
+                explore_pos = yolo();
+            }            
         }
         move_to(explore_pos);
         sniff();
@@ -30,12 +38,14 @@ void Robot::start() {
             state = GOLD_KNOWN;
             break;
         }
-        
     }
     assert(!board.gold_pos.is_null());
     out << "FOUND GOLD\n";
     Coordinate gold_pos = board.gold_pos;
-    move_to(gold_pos);
+    while(!move_to(gold_pos)) {
+        // continue yoloing as necessary until the path to gold is clear
+        move_to(yolo());
+    }
     state = HAS_GOLD;
     out << "GOT THE GOLD\n";
 
@@ -203,6 +213,86 @@ void Robot::shoot_at(const Coordinate & target_pos) {
     rotate(aim_dir);
     out << "shooting at " << target_pos.x << ", " << target_pos.y << std::endl;
     shoot();
+    if (state < USED_ARROW) state = USED_ARROW;
     // zero out the wumpus bit from the target position by setting the bit to 1 then flipping it
     board.set(target_pos, (board[target_pos] | Tile["WUMPUS"]) ^ Tile["WUMPUS"]);
+}
+
+Coordinate Robot::yolo() {
+    /*
+    call this if there are no known safe places to explore
+    this uses the fact that the board is supposed to be solveable to make a logical deduction
+    as to where it must move next if it is going to reach the gold
+    this will take risks such as shooting at a guess of where the wumpus is, or moving into
+    a tile that might contain a pit, but does so in a way that is guaranteed to be safe if the board is solvable
+    this returns the coordinate to move into next (which is marked as safe, even though it could be a risk)
+    the returned tile definitely does not have the wumpus in it (we shoot at it before returning if there is a chance)
+
+    Note: this should only be called if the robot knows the board is solvable
+    Note: calling yolo multiple times in a row is acceptable
+    */
+    out << "yoloing\n";
+    // first, find out all the positions we know absolutely are bad to move into
+    std::vector<std::vector<bool> > forbidden(WIDTH, std::vector<bool>(HEIGHT, false));
+    for (unsigned int x = 0; x < WIDTH; x++) {
+        for (unsigned int y = 0; y < HEIGHT; y++) {
+            int tile = board.deduce(Coordinate(x, y), scents);
+            // only forbid tiles that we are sure are pits
+            if (tile == 0b001) forbidden[x][y] = true;
+        }
+    }
+
+    // then, consider the collection of positions that we have not sniffed at, but might be safe, and are reachable
+    // by moving through only known safe tiles
+    std::vector<Coordinate> potential_safe;  // a list would be slightly better, but that would be one more library to use
+    for (unsigned int x = 0; x < WIDTH; x++) {
+        for (unsigned int y = 0; y < HEIGHT; y++) {
+            if ((scents[x][y] & 0b10000) && !forbidden[x][y] && (shortest_path(pos, Coordinate(x, y), board).size() > 0)) potential_safe.push_back(Coordinate(x, y));
+        }
+    }
+    // tmp print out the potential safe positions
+    out << "potential safe positions:\n";
+    for (const Coordinate & c:potential_safe) {
+        out << c.x << ", " << c.y << std::endl;
+    }
+
+    Coordinate risk_pos;
+    // if there are multiple positions, we need to figure out which one could possibly be blocking
+    // the gold - and that must be correct to move into since we assume the board is solvable
+    if (potential_safe.size() > 1) {
+        // remove any positions that are neither adjacent to positions which can contain gold, 
+        // nor could contain gold themselves
+        bool filtered = false;
+        while (!filtered) {
+            filtered = true;
+            for (std::vector<Coordinate>::iterator it = potential_safe.begin(); it != potential_safe.end(); it++) {
+                bool possible_path_to_gold = board[*it] & Tile["GOLD"];
+                for (const Coordinate & adj:adjacent_positions(*it)) {
+                    if (board[adj] & Tile["GOLD"]) possible_path_to_gold = true;
+                }
+                if (!possible_path_to_gold) {
+                    potential_safe.erase(it);
+                    filtered = false;
+                    break;
+                }
+            }
+        }
+    }
+    if (potential_safe.size() == 0) {
+        // this board is guaranteed not solvable
+        // don't let the wumpus have the last laugh :)
+        out << "here :(\n";
+        while (true) rot_cw();
+    }
+    else {
+        // there is either just one position, or multiple equally good guesses
+        risk_pos = potential_safe[0];
+    }
+    
+    if (board[risk_pos] & Tile["WUMPUS"]) {
+        shoot_at(risk_pos);
+    }
+    // mark the tile as safe since that's what we will assume from now on
+    board.set(risk_pos, board[risk_pos] & 0b0100);
+    return risk_pos;
 }
