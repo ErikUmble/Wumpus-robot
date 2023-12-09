@@ -1,0 +1,18 @@
+version: 1
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - nvm use 18
+            - corepack enable
+            - npx --yes nypm i
+            - npm i
+        build:
+          commands:
+            - npm run generate
+      artifacts:
+        baseDirectory: /.output/public
+        files:
+          - '**/*'
+    appRoot: "website"
