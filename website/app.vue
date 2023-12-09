@@ -32,15 +32,20 @@
     </header>
 
     <body>
-      <div>
+
+      
+      <div style="min-height: 85vh"> <!-- min height 85% of viewport keeps footer visible at the bottom of the page even when there is not much content-->
         <!--Each page template automatically goes here-->
         <NuxtPage />
       </div>
+      
     </body>
 
-    <footer class="py-4 px-8 bg-gray-800 text-center">
+    <footer class="py-4 px-8 bg-base-800 text-center">
         <p>Minds & Machines 2023 - Joel M. & Erik U.</p>
     </footer>
+
+    
   </div>
 </template>
 
