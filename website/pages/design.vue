@@ -33,10 +33,10 @@
 	  The main "intelligence" of NanoBot is in its ability to update its understanding of the board efficiently, so as to determine 
 	  what might be in each tile, and plan a fast and safe route to each subsequent location. There are three key deductions that NanoBot makes 
 	  when it recieves a new scent:
-	  <ul class="list-inside list-disc mt-2 ps-5 py-2">
-            <li>1. Eliminate the possibility of any tile type not contained in the scent from adjacent positions.</li>
-            <li>2. If glitter or stench scented, eliminate the possibility of gold or Wumpus in all non adjacent squares (since there are just one of each on the map).</li>
-            <li>3. If NanoBot sensed something at a position and eliminated that option from 3 adjacent locations, then the 4th adjacent position must be the tile producing the scent</li>
+	  <ul class="list-inside list-decimal mt-2 ps-5 py-2">
+            <li>Eliminate the possibility of any tile type not contained in the scent from adjacent positions.</li>
+            <li>If glitter or stench scented, eliminate the possibility of gold or Wumpus in all non adjacent squares (since there are just one of each on the map).</li>
+            <li>If NanoBot sensed something at a position and eliminated that option from 3 adjacent locations, then the 4th adjacent position must be the tile producing the scent</li>
 	  </ul>
 	  In games that are solvable, but only under the assumption that they are solvable, NanoBot uses several more complex heuristics to determine which risky location is the one that 
 	  must be safe, based on the remaining positions where gold is possible and the elimination of paths that pass through 100% confirmed pits.
