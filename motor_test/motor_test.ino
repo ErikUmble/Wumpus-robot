@@ -13,9 +13,8 @@ SAMD_PWM* motor2pin2pwm;
 
 float stdFreq = 1000.0f; // operating frequency (unvarying)
 float zeroDuty = 0.0f; // off
-float slow = 15.0f; // slow speed
+float slow = 18.0f; // slow speed
 float turn = 20.0f; // turn speed
-
 
 // scale motor 2's duty cycle by a constant to adjust for differences
 // in hardware between the two motors
@@ -23,10 +22,10 @@ float m2_scale = 1.0232;
 
 // delay needed for the bot to travel 1 block
 // when motors are all forward or all backward
-int block_delay = 4000;
+int block_delay = 3600;
 
 // delay needed for the bot to rotate 90 degrees
-int rot_delay = 950;
+int rot_delay = 400;
 
 void setup() {
   // init and set all motor pins to 0
