@@ -11,7 +11,7 @@ int motor2pin1 = 6;
 int motor2pin2 = 5;
 Encoder m2encoder(11, 21);
 
-float OK_ERROR = 100;
+float OK_ERROR = 30;
 
 SAMD_PWM* motor1pin1pwm;
 SAMD_PWM* motor1pin2pwm;
@@ -21,6 +21,7 @@ SAMD_PWM* motor2pin2pwm;
 float stdFreq = 1000.0f; // operating frequency (unvarying)
 float zeroDuty = 0.0f; // off
 float slow = 22.0f; // slow speed
+float med = 30.0f;
 float turnProportion = 0.05; // turn speed
 float intProportion = 0.002;
 
@@ -35,7 +36,7 @@ long blockEncTarget = 4000;
 
 // number of encoder ticks in each wheel
 // to turn 90 degrees
-long turnEncTarget = 680;
+long turnEncTarget = 760;
 
 BLEService nanoBotService("180A"); // BLE Service
 // BLE Characteristic for transmitting scent - custom 128-bit UUID, read and writable by central
@@ -45,13 +46,13 @@ BLEDevice central;
 
 bool ir_left() {
   // returns true if the left infrared sensor detects white
-  return analogRead(17) > 1023 / 2;
+  return analogRead(17) < 1023 / 2;
 }
 
 
 bool ir_right() {
   // returns true if the right infrared sensor detects white
-  return analogRead(16) > 1023 / 2;
+  return analogRead(16) < 1023 / 2;
 }
 
 
@@ -189,27 +190,29 @@ class NanoBot: public Robot {
     }
     void move_forward() {
 
-
         // move forward and then make corrections until both sensors detect white at the same time
-        bool white_left, white_right;
+        bool white_left = false, white_right = false;
         while (true) {
           unsigned long distance_ms = 0;
           allForward(slow);
-          while(!ir_left() && !ir_right()) {
+          while(!white_left && !white_right) {
             distance_ms += 1; 
             delay(1); 
             white_left = ir_left(); white_right = ir_right();
             }
           allStop();
           if (white_left && white_right) break;
-          if (white_left) m2Backward(slow);
-          if (white_right) m1Backward(slow);
-          delay(distance_ms / 20);
+          if (white_left) m2Backward(med);
+          if (white_right) m1Backward(med);
+          delay(distance_ms / 3);
           allStop();
+          white_left = false;
+          white_right = false;
         }
         allForward(slow);
-        delay(block_delay/2);
+        delay(block_delay/3);
         allStop();
+
 
 
         // update internal state
