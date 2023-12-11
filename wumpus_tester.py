@@ -282,6 +282,15 @@ def runTests(program, difficulty, enable_hardest=False):
     if difficulty == "easy":
         print("Running easy tests.\n")
         legend()
+        print("custom world:")
+        world0 = World([
+            ["g", "p", "e", "e"],
+            ["w", "e", "e", "e"],
+            ["e", "e", "e", "e"],
+            ["e", "e", "e", "e"]
+        ])
+        test(program, world0)
+        input()
         print("Easy world 1:")
         world1 = World([
             ["e", "e", "e", "g"],
