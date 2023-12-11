@@ -162,7 +162,6 @@ void Robot::rot_cw() {
     int tmp_dx = dir.x;
     dir.x = dir.y;
     dir.y = -tmp_dx;
-
 }
 void Robot::rot_ccw() {
     /*

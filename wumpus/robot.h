@@ -36,9 +36,9 @@ class Robot {
     virtual void rot_ccw();
     virtual void move_forward();
     // receive_scent must return the scent at the current position pos (such as by listening to cin or bluetooth).
-    virtual int receive_scent() const {throw std::runtime_error("receive_scent must be implemented by subclass");}
+    virtual int receive_scent() const {}
     // shoot must shoot at the target position (such as by printing a message or physically releasing an arrow).
-    virtual void shoot() {throw std::runtime_error("shoot must be implemented by subclass");}
+    virtual void shoot() {}
     
 
     protected:
