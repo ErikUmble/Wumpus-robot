@@ -5,7 +5,7 @@
 #include "board.h"
 #include "robot.h"
 
-Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y), dir(dx, dy), start_pos(x, y), state(state), board(board), log_actions(false), log_out(std::cout.rdbuf()) {
+Robot::Robot(int x, int y, int dx, int dy, Board board, State state) : pos(x, y), dir(dx, dy), start_pos(x, y), state(state), board(board), log_actions(false), has_arrow(true), log_out(std::cout.rdbuf()) {
     // Note that although cout is set as the log stream, it will not be written to until enable_logs is called
 
     // robot must start at a valid location, so mark it as such
@@ -30,7 +30,7 @@ void Robot::start() {
         Coordinate explore_pos = get_explore_pos();
         // if there are no safe places to explore, shoot the wumpus and explore from that location
         if (explore_pos.is_null()) {
-            if (!board.wumpus_pos.is_null() && state < USED_ARROW) {
+            if (!board.wumpus_pos.is_null() && has_arrow) {
                 // we know where the wumpus is, and still have an arrow to use
                 explore_pos = board.wumpus_pos;
                 shoot_at(board.wumpus_pos);
@@ -54,8 +54,9 @@ void Robot::start() {
     if (log_actions) log("FOUND GOLD");
     Coordinate gold_pos = board.gold_pos;
     while(!move_to(gold_pos)) {
-        // continue yoloing as necessary until the path to gold is clear
-        move_to(yolo());
+        // shoot wumpus or continue yoloing as neccessary until the path to gold is clear
+        if (!board.wumpus_pos.is_null() && has_arrow) shoot_at(board.wumpus_pos);
+        else move_to(yolo());
     }
     state = HAS_GOLD;
     if (log_actions) log("RETRIEVED GOLD");
@@ -219,8 +220,11 @@ void Robot::shoot_at(const Coordinate & target_pos) {
     rotate(aim_dir);
 
     if (log_actions) log("shooting at " + std::to_string(target_pos.x) + ", " + std::to_string(target_pos.y));
-    shoot();
-    if (state < USED_ARROW) state = USED_ARROW;
+
+    if (has_arrow) shoot();
+    else return;
+    has_arrow = false;
+    
     // zero out the wumpus bit from the target position by setting the bit to 1 then flipping it
     board.set(target_pos, (board[target_pos] | Tile["WUMPUS"]) ^ Tile["WUMPUS"]);
 }

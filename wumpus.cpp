@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include "robot.h"
+#include "wumpus/robot.h"
 
 class BitBot: public Robot {
     public:
@@ -34,5 +34,6 @@ class BitBot: public Robot {
 
 int main() {
     BitBot robot;
+    robot.enable_logs(std::cout); // commet out for running with wumpus_tester.py
     robot.start();
 }
