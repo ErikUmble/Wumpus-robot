@@ -103,9 +103,6 @@ class NanoBot: public Robot {
     }
     void move_forward() {
 
-        Serial.println("moving forward");
-        Serial.println(pos.x);
-        Serial.println(pos.y);
         // move NanoBot forward 1 block
         allForward(slow);
         delay(block_delay);
@@ -119,40 +116,34 @@ class NanoBot: public Robot {
         Writes 0b111111 = 0x3F = '?' (query) to indicate waiting for a scent
         then returns the next value after that changes
         */
-        Serial.println("receive scent called!");
-        while (true) {
-            if (central) {
-                while(central.connected()) {
-                    Serial.print("writing ");
-                    Serial.println(scentCharacteristic.value());
-                    
-                    scentCharacteristic.writeValue('?');
-                    delay(1000);
-                    Serial.print("reading ");
-                    Serial.println(scentCharacteristic.value());
-                    
-                    while (scentCharacteristic.value() == '?') {
-                      Serial.println("?");
-                    }
-                    Serial.println("returning");
-                    return scentCharacteristic.value();
-                }
-            }
+        // listen for BLE peripherals to connect:
+        central = BLE.central();
+
+        if (central) {
+          scentCharacteristic.writeValue('?');
+          while(central.connected()) {
+            if (scentCharacteristic.written());
+              char scent = scentCharacteristic.value();
+              if (scent == '?') continue;
+              return scent;
+          }
         }
     }
     void shoot() {
         // send 0b1000000 = 0x40 = '@' (target) to indicate shooting
         // wait for aknowledgement (any other value) before continuing
         
-        while (true) {
-            if (central) {
-            while(central.connected()) {
-                scentCharacteristic.writeValue('@');
-                while (scentCharacteristic.value() == '@');
-                return;
-            }
+        central = BLE.central();
+
+        if (central) {
+          scentCharacteristic.writeValue('@');
+          while(central.connected()) {
+            if (scentCharacteristic.written());
+              char scent = scentCharacteristic.value();
+              if (scent == '@') continue;
+              return;
+          }
         }
-      }
     }
 
     private:
@@ -162,10 +153,6 @@ class NanoBot: public Robot {
 NanoBot robot;
 
 void setup() {
-
-    // temporary for debug
-    Serial.begin(9600);
-    while (!Serial);
 
     // initialize Bluetooth connection
     if (!BLE.begin()) {
@@ -192,11 +179,8 @@ void setup() {
     // debugging
     while(true) {
       central = BLE.central();
-      Serial.println("waiting for bluetooth");
       while (central && central.connected()) {
-        Serial.println("connected!");
         if (scentCharacteristic.written()) {
-          Serial.println("breaking");
           break;
         }
       }
