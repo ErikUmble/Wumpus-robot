@@ -121,6 +121,7 @@ class NanoBot: public Robot {
         */
         Serial.println("receive scent called!");
         while (true) {
+            central = BLE.central();
             if (central) {
                 while(central.connected()) {
                     Serial.print("writing ");
