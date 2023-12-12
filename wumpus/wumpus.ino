@@ -22,21 +22,21 @@ float stdFreq = 1000.0f; // operating frequency (unvarying)
 float zeroDuty = 0.0f; // off
 float slow = 22.0f; // slow speed
 float med = 30.0f;
-float turnProportion = 0.05; // turn speed
-float intProportion = 0.002;
+float turnProportion = 0.03; // turn speed
+float intProportion = 0.0015;
 
 int block_delay = 3600;
 
 // scale motor 2's duty cycle by a constant to adjust for differences
 // in hardware between the two motors
-float m2_scale = 1.0232;
+float m2_scale = 1.0403;
 
 // number of encoder ticks in one block
 long blockEncTarget = 4000;
 
 // number of encoder ticks in each wheel
 // to turn 90 degrees
-long turnEncTarget = 760;
+long turn90ticks = 600;
 
 BLEService nanoBotService("180A"); // BLE Service
 // BLE Characteristic for transmitting scent - custom 128-bit UUID, read and writable by central
@@ -123,6 +123,11 @@ void allForward(float dutyCycle) {
   m2Forward(dutyCycle);
 }
 
+void allBackward(float dutyCycle) {
+  m1Backward(dutyCycle);
+  m2Backward(dutyCycle);
+}
+
 void allStop() {
   // set all duty cycles to 0
   motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
@@ -131,38 +136,38 @@ void allStop() {
   motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
 }
 
-void ccw() {
+void ccw(long ticks) {
   m1encoder.readAndReset();
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
-  while (abs(m1encoder.read() - turnEncTarget) > OK_ERROR || abs(m2encoder.read() + turnEncTarget) > OK_ERROR) {
-    if (abs(m1encoder.read() - turnEncTarget) > OK_ERROR) {
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - turnEncTarget) + intProportion * m1integral));
-      m1integral += m1encoder.read() - turnEncTarget;
+  while (abs(m1encoder.read() - ticks) > OK_ERROR || abs(m2encoder.read() + ticks) > OK_ERROR) {
+    if (abs(m1encoder.read() - ticks) > OK_ERROR) {
+      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - ticks) + intProportion * m1integral));
+      m1integral += m1encoder.read() - ticks;
     }
-    if (abs(m2encoder.read() + turnEncTarget) > OK_ERROR) {
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + turnEncTarget) + intProportion * m2integral));
-      m2integral += m2encoder.read() + turnEncTarget;
+    if (abs(m2encoder.read() + ticks) > OK_ERROR) {
+      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + ticks) + intProportion * m2integral));
+      m2integral += m2encoder.read() + ticks;
     }
     delay(50);
   }
   allStop();
 }
 
-void cw() {
+void cw(long ticks) {
   m1encoder.readAndReset();
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
-  while (abs(m1encoder.read() + turnEncTarget) > OK_ERROR || abs(m2encoder.read() - turnEncTarget) > OK_ERROR) {
-    if (abs(m1encoder.read() + turnEncTarget) > OK_ERROR) {
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + turnEncTarget) + intProportion * m1integral));
-      m1integral += m1encoder.read() + turnEncTarget;
+  while (abs(m1encoder.read() + ticks) > OK_ERROR || abs(m2encoder.read() - ticks) > OK_ERROR) {
+    if (abs(m1encoder.read() + ticks) > OK_ERROR) {
+      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + ticks) + intProportion * m1integral));
+      m1integral += m1encoder.read() + ticks;
     }
-    if (abs(m2encoder.read() - turnEncTarget) > OK_ERROR) {
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - turnEncTarget) + intProportion * m2integral));
-      m2integral += m2encoder.read() - turnEncTarget;
+    if (abs(m2encoder.read() - ticks) > OK_ERROR) {
+      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - ticks) + intProportion * m2integral));
+      m2integral += m2encoder.read() - ticks;
     }
     delay(50);
   }
@@ -175,7 +180,7 @@ class NanoBot: public Robot {
     void rot_cw() {
 
         // turn NanoBot
-        cw();
+        cw(turn90ticks);
 
         // update internal state
         super::rot_cw();
@@ -183,36 +188,55 @@ class NanoBot: public Robot {
     void rot_ccw() {
 
         // turn NanoBot
-        ccw();
+        ccw(turn90ticks);
 
         // update internal state
         super::rot_ccw();
     }
     void move_forward() {
 
+
         // move forward and then make corrections until both sensors detect white at the same time
         bool white_left = false, white_right = false;
+        int left_time = 0, right_time = 0;
+        int error_threshold_ms = 20;
         while (true) {
-          unsigned long distance_ms = 0;
+          int count = 0;
           allForward(slow);
-          while(!white_left && !white_right) {
-            distance_ms += 1; 
+          while(!white_left || !white_right) {
+            count += 1; 
             delay(1); 
-            white_left = ir_left(); white_right = ir_right();
+            if (!white_left && ir_left()) {
+              white_left = true;
+              left_time = count;
             }
+            if (!white_right && ir_right()) {
+              white_right = true;
+              right_time = count;
+            }
+          }
           allStop();
-          if (white_left && white_right) break;
-          if (white_left) m2Backward(med);
-          if (white_right) m1Backward(med);
-          delay(distance_ms / 3);
+          if (abs(left_time - right_time) < error_threshold_ms) break;
+          /*if (left_time < right_time) m2Backward(med);
+          else m1Backward(med);
+          delay(abs(left_time - right_time) * 5);*/
+          
+          // backup and rotate to correct
+          allBackward(med);
+          delay(500);
           allStop();
+
+
+          if (left_time < right_time) ccw((right_time - left_time));
+          else cw((left_time - right_time) * 2);
           white_left = false;
           white_right = false;
+          left_time = 0;
+          right_time = 0;
         }
         allForward(slow);
         delay(block_delay/3);
         allStop();
-
 
 
         // update internal state
@@ -225,6 +249,7 @@ class NanoBot: public Robot {
         */
         // listen for BLE peripherals to connect:
         central = BLE.central();
+
 
         if (central) {
           scentCharacteristic.writeValue('?');
