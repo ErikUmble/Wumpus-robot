@@ -125,8 +125,8 @@ void Robot::rotate(const Coordinate & new_dir) {
 }
 
 void Robot::rot_180() {
-    this->pos.x = -this->pos.x;
-    this->pos.y = -this->pos.y;
+    this->dir.x = -this->dir.x;
+    this->dir.y = -this->dir.y;
 }
 
 void Robot::follow_path(const std::vector<Coordinate> & path) {
