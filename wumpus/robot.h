@@ -34,6 +34,7 @@ class Robot {
     // methods to be overriden by subclasses
     virtual void rot_cw();
     virtual void rot_ccw();
+    virtual void rot_180() {rot_cw(); rot_cw();}
     virtual void move_forward();
     // receive_scent must return the scent at the current position pos (such as by listening to cin or bluetooth).
     virtual int receive_scent() const {return -1;}
