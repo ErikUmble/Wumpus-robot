@@ -124,6 +124,11 @@ void Robot::rotate(const Coordinate & new_dir) {
     while (!(this->dir == new_dir)) rot_cw();
 }
 
+void Robot::rot_180() {
+    this->pos.x = -this->pos.x;
+    this->pos.y = -this->pos.y;
+}
+
 void Robot::follow_path(const std::vector<Coordinate> & path) {
     /*
     given a path of directions, this causes the robot to rotate and move forward
