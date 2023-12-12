@@ -13,14 +13,14 @@ SAMD_PWM* motor2pin2pwm;
 
 float stdFreq = 1000.0f; // operating frequency (unvarying)
 float zeroDuty = 0.0f; // off
-float slow = 15.0f; // slow speed
+float slow = 22.0f; // slow speed
 float turn = 20.0f; // turn speed
 
 /*
 scale motor 2's duty cycle by a constant to adjust for differences
 in hardware between the two motors
 */
-float m2_scale = 1.0232;
+float m2_scale = 1.0403;
 
 void setup() {
   // init and set all motor pins to 0
@@ -86,7 +86,7 @@ void loop() {
   // go forward for 4.5 s and then we can measure error
   delay(5000);
   allForward(slow);
-  delay(4500);
+  delay(8000);
   allStop();
 }
 
