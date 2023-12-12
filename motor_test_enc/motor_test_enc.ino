@@ -9,7 +9,7 @@ int motor2pin1 = 6;
 int motor2pin2 = 5;
 Encoder m2encoder(11, 21);
 
-float OK_ERROR = 50;
+float OK_ERROR = 30;
 
 SAMD_PWM* motor1pin1pwm;
 SAMD_PWM* motor1pin2pwm;
@@ -19,8 +19,10 @@ SAMD_PWM* motor2pin2pwm;
 float stdFreq = 1000.0f; // operating frequency (unvarying)
 float zeroDuty = 0.0f; // off
 float slow = 22.0f; // slow speed
-float turnProportion = 0.05; // turn speed
-float intProportion = 0.002;
+float turnProportion = 0.03; // turn speed
+float intProportion = 0.0015;
+int maxIntPower = 500;
+float maxDuty = 50.0;
 
 // scale motor 2's duty cycle by a constant to adjust for differences
 // in hardware between the two motors
@@ -31,7 +33,7 @@ long blockEncTarget = 4000;
 
 // number of encoder ticks in each wheel
 // to turn 90 degrees
-long turnEncTarget = 680;
+long turn90ticks = 600;
 
 void setup() {
 
@@ -49,8 +51,8 @@ void setup() {
 }
 
 void m1Forward(float dutyCycle) {
-  if (dutyCycle >= 100.0) {
-    motor1pin1pwm->setPWM(motor1pin1, stdFreq, 100.0f);
+  if (dutyCycle >= maxDuty) {
+    motor1pin1pwm->setPWM(motor1pin1, stdFreq, maxDuty);
     motor1pin2pwm->setPWM(motor1pin2, stdFreq, 0.0f);
   }
   else {
@@ -60,9 +62,9 @@ void m1Forward(float dutyCycle) {
 }
 
 void m1Backward(float dutyCycle) {
-  if (dutyCycle >= 100) {
+  if (dutyCycle >= maxDuty) {
     motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
-    motor1pin2pwm->setPWM(motor1pin2, stdFreq, 100.0f);
+    motor1pin2pwm->setPWM(motor1pin2, stdFreq, maxDuty);
   }
   else {
     motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
@@ -71,8 +73,8 @@ void m1Backward(float dutyCycle) {
 }
 
 void m2Forward(float dutyCycle) {
-  if (dutyCycle * m2_scale >= 100) {
-    motor2pin1pwm->setPWM(motor2pin1, stdFreq, 100.0);
+  if (dutyCycle * m2_scale >= maxDuty) {
+    motor2pin1pwm->setPWM(motor2pin1, stdFreq, maxDuty);
     motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
   }
   else {
@@ -82,9 +84,9 @@ void m2Forward(float dutyCycle) {
 }
 
 void m2Backward(float dutyCycle) {
-  if (dutyCycle * m2_scale >= 100) {
+  if (dutyCycle * m2_scale >= maxDuty) {
     motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
-    motor2pin2pwm->setPWM(motor2pin2, stdFreq, 100.0);
+    motor2pin2pwm->setPWM(motor2pin2, stdFreq, maxDuty);
   }
   else {
     motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
@@ -144,39 +146,59 @@ void allStop() {
   motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
 }
 
-void ccw() {
+void ccw(long ticks) {
   m1encoder.readAndReset();
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
-  while (abs(m1encoder.read() - turnEncTarget) > OK_ERROR || abs(m2encoder.read() + turnEncTarget) > OK_ERROR) {
-    if (abs(m1encoder.read() - turnEncTarget) > OK_ERROR) {
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - turnEncTarget) + intProportion * m1integral));
-      m1integral += m1encoder.read() - turnEncTarget;
+  long timeSinceStart = 0;
+  while (abs(m1encoder.read() - ticks) > OK_ERROR || abs(m2encoder.read() + ticks) > OK_ERROR) {
+    if (abs(m1encoder.read() - ticks) > OK_ERROR) {
+      float intPower = maxIntPower;
+      if (intProportion * m1integral < maxIntPower) {
+        intPower = intProportion * m1integral;
+      }
+      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - ticks) + intPower));
+      m1integral += (m1encoder.read() - ticks) * (timeSinceStart / 2000);
     }
-    if (abs(m2encoder.read() + turnEncTarget) > OK_ERROR) {
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + turnEncTarget) + intProportion * m2integral));
-      m2integral += m2encoder.read() + turnEncTarget;
+    if (abs(m2encoder.read() + ticks) > OK_ERROR) {
+      float intPower = maxIntPower;
+      if (intProportion * m2integral < maxIntPower) {
+        intPower = intProportion * m2integral;
+      }
+      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + ticks) + intPower));
+      m2integral += (m2encoder.read() + ticks) * (timeSinceStart / 2000);
     }
+    timeSinceStart += 50;
     delay(50);
   }
   allStop();
 }
 
-void cw() {
+void cw(long ticks) {
   m1encoder.readAndReset();
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
-  while (abs(m1encoder.read() + turnEncTarget) > OK_ERROR || abs(m2encoder.read() - turnEncTarget) > OK_ERROR) {
-    if (abs(m1encoder.read() + turnEncTarget) > OK_ERROR) {
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + turnEncTarget) + intProportion * m1integral));
-      m1integral += m1encoder.read() + turnEncTarget;
+  long timeSinceStart = 0;
+  while (abs(m1encoder.read() + ticks) > OK_ERROR || abs(m2encoder.read() - ticks) > OK_ERROR) {
+    if (abs(m1encoder.read() + ticks) > OK_ERROR) {
+      float intPower = maxIntPower;
+      if (intProportion * m1integral < maxIntPower) {
+        intPower = intProportion * m1integral;
+      }
+      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + ticks) + intPower));
+      m1integral += (m1encoder.read() + ticks) * (timeSinceStart / 2000);
     }
-    if (abs(m2encoder.read() - turnEncTarget) > OK_ERROR) {
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - turnEncTarget) + intProportion * m2integral));
-      m2integral += m2encoder.read() - turnEncTarget;
+    if (abs(m2encoder.read() - ticks) > OK_ERROR) {
+      float intPower = maxIntPower;
+      if (intProportion * m2integral < maxIntPower) {
+        intPower = intProportion * m2integral;
+      }
+      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - ticks) + intPower));
+      m2integral += (m2encoder.read() - ticks) * (timeSinceStart / 2000);
     }
+    timeSinceStart += 50;
     delay(50);
   }
   allStop();
@@ -184,6 +206,5 @@ void cw() {
 
 void loop() {
   delay(5000);
-  ccw();
-  ccw();
+  ccw(turn90ticks * 2);
 }
