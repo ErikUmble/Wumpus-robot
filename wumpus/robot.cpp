@@ -96,6 +96,8 @@ Coordinate Robot::get_explore_pos() const {
             int sum = 0;
             for (const Coordinate adj:adjacent_positions(potential)) {
                 sum += board[adj];
+                // a tile is highly valuable if it is adjacent to a tile that scented gold
+                if (scents[adj.x][adj.y] & Tile["GOLD"]) sum += 100;
             }
             if (sum > max_sum || (sum == max_sum && distance(pos, potential) < distance(pos, best_pos))) {
                 max_sum = sum;
