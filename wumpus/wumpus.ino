@@ -22,8 +22,10 @@ float stdFreq = 1000.0f; // operating frequency (unvarying)
 float zeroDuty = 0.0f; // off
 float slow = 22.0f; // slow speed
 float med = 30.0f;
-float turnProportion = 0.03; // turn speed
-float intProportion = 0.0015;
+float turnProportion = 0.05; // turn speed
+float intProportion = 0.0010;
+int maxIntPower = 350;
+float maxDuty = 40.0;
 
 int block_delay = 3600;
 
@@ -57,8 +59,8 @@ bool ir_right() {
 
 
 void m1Forward(float dutyCycle) {
-  if (dutyCycle >= 100.0) {
-    motor1pin1pwm->setPWM(motor1pin1, stdFreq, 100.0f);
+  if (dutyCycle >= maxDuty) {
+    motor1pin1pwm->setPWM(motor1pin1, stdFreq, maxDuty);
     motor1pin2pwm->setPWM(motor1pin2, stdFreq, 0.0f);
   }
   else {
@@ -68,9 +70,9 @@ void m1Forward(float dutyCycle) {
 }
 
 void m1Backward(float dutyCycle) {
-  if (dutyCycle >= 100) {
+  if (dutyCycle >= maxDuty) {
     motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
-    motor1pin2pwm->setPWM(motor1pin2, stdFreq, 100.0f);
+    motor1pin2pwm->setPWM(motor1pin2, stdFreq, maxDuty);
   }
   else {
     motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
@@ -79,8 +81,8 @@ void m1Backward(float dutyCycle) {
 }
 
 void m2Forward(float dutyCycle) {
-  if (dutyCycle * m2_scale >= 100) {
-    motor2pin1pwm->setPWM(motor2pin1, stdFreq, 100.0);
+  if (dutyCycle * m2_scale >= maxDuty) {
+    motor2pin1pwm->setPWM(motor2pin1, stdFreq, maxDuty);
     motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
   }
   else {
@@ -90,9 +92,9 @@ void m2Forward(float dutyCycle) {
 }
 
 void m2Backward(float dutyCycle) {
-  if (dutyCycle * m2_scale >= 100) {
+  if (dutyCycle * m2_scale >= maxDuty) {
     motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
-    motor2pin2pwm->setPWM(motor2pin2, stdFreq, 100.0);
+    motor2pin2pwm->setPWM(motor2pin2, stdFreq, maxDuty);
   }
   else {
     motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
@@ -141,15 +143,25 @@ void ccw(long ticks) {
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
+  long timeSinceStart = 0;
   while (abs(m1encoder.read() - ticks) > OK_ERROR || abs(m2encoder.read() + ticks) > OK_ERROR) {
     if (abs(m1encoder.read() - ticks) > OK_ERROR) {
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - ticks) + intProportion * m1integral));
-      m1integral += m1encoder.read() - ticks;
+      float intPower = maxIntPower;
+      if (intProportion * m1integral < maxIntPower) {
+        intPower = intProportion * m1integral;
+      }
+      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - ticks) + intPower));
+      m1integral += (m1encoder.read() - ticks) * (timeSinceStart / 2000);
     }
     if (abs(m2encoder.read() + ticks) > OK_ERROR) {
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + ticks) + intProportion * m2integral));
-      m2integral += m2encoder.read() + ticks;
+      float intPower = maxIntPower;
+      if (intProportion * m2integral < maxIntPower) {
+        intPower = intProportion * m2integral;
+      }
+      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + ticks) + intPower));
+      m2integral += (m2encoder.read() + ticks) * (timeSinceStart / 2000);
     }
+    timeSinceStart += 50;
     delay(50);
   }
   allStop();
@@ -160,15 +172,25 @@ void cw(long ticks) {
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
+  long timeSinceStart = 0;
   while (abs(m1encoder.read() + ticks) > OK_ERROR || abs(m2encoder.read() - ticks) > OK_ERROR) {
     if (abs(m1encoder.read() + ticks) > OK_ERROR) {
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + ticks) + intProportion * m1integral));
-      m1integral += m1encoder.read() + ticks;
+      float intPower = maxIntPower;
+      if (intProportion * m1integral < maxIntPower) {
+        intPower = intProportion * m1integral;
+      }
+      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + ticks) + intPower));
+      m1integral += (m1encoder.read() + ticks) * (timeSinceStart / 2000);
     }
     if (abs(m2encoder.read() - ticks) > OK_ERROR) {
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - ticks) + intProportion * m2integral));
-      m2integral += m2encoder.read() - ticks;
+      float intPower = maxIntPower;
+      if (intProportion * m2integral < maxIntPower) {
+        intPower = intProportion * m2integral;
+      }
+      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - ticks) + intPower));
+      m2integral += (m2encoder.read() - ticks) * (timeSinceStart / 2000);
     }
+    timeSinceStart += 50;
     delay(50);
   }
   allStop();
@@ -192,6 +214,14 @@ class NanoBot: public Robot {
 
         // update internal state
         super::rot_ccw();
+    }
+    void rot_180() {
+
+      // turn NanoBot
+      ccw(turn90ticks * 2);
+
+      // update internal state
+      super::rot_180();
     }
     void move_forward() {
 
@@ -235,7 +265,7 @@ class NanoBot: public Robot {
           right_time = 0;
         }
         allForward(slow);
-        delay(block_delay/3);
+        delay(block_delay*1/2);
         allStop();
 
 
@@ -324,4 +354,8 @@ void setup() {
 
 void loop() {
   robot.start();
+  // celebrate
+  ccw(720);
+  // stop
+  while(true);
 }
