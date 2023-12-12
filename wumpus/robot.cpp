@@ -117,7 +117,7 @@ void Robot::rotate(const Coordinate & new_dir) {
         rot_ccw();
     }
     // check if a 180 degree rotation is necessary
-    else if ((new_dir.x == -this->dir.x) || (new_dir.y == -this->dir.y)) {
+    else if ((new_dir.x == -this->dir.x && new_dir.x != 0) || (new_dir.y == -this->dir.y && new_dir.y != 0)) {
         rot_180();
     }
     // otherwise, rotate cw until we are facing the desired direction
