@@ -23,8 +23,8 @@ float zeroDuty = 0.0f; // off
 float slow = 22.0f; // slow speed
 float med = 30.0f;
 float turnProportion = 0.05; // turn speed
-float intProportion = 0.0010;
-int maxIntPower = 350;
+float intProportion = 0.0015;
+int maxIntPower = 300;
 float maxDuty = 40.0;
 
 int block_delay = 3600;
@@ -34,7 +34,7 @@ int block_delay = 3600;
 float m2_scale = 1.0403;
 
 // number of encoder ticks in one block
-long blockEncTarget = 4000;
+long ticksAfterLine = 950;
 
 // number of encoder ticks in each wheel
 // to turn 90 degrees
@@ -196,6 +196,32 @@ void cw(long ticks) {
   allStop();
 }
 
+void forwardTicks(float dutyCycle, long ticks) {
+  
+  m1encoder.readAndReset();
+  m2encoder.readAndReset();
+  while(ticks - (m1encoder.read() + m2encoder.read()) / 2 > OK_ERROR) {
+
+    float curScale = 1;
+    if (m1encoder.read() > 100) {
+      curScale = (float)m1encoder.read() / (float)m2encoder.read();
+      curScale *= curScale;
+    }
+    m1Forward(dutyCycle);
+    m2Forward(dutyCycle * curScale);
+    /*
+    Serial.print(m1encoder.read());
+    Serial.print(" ");
+    Serial.print(m2encoder.read());
+    Serial.print(" ");
+    Serial.println(curScale);
+    */
+    delay(50);
+
+  }
+
+}
+
 class NanoBot: public Robot {
     public:
     NanoBot() { super(); }
@@ -264,7 +290,7 @@ class NanoBot: public Robot {
           left_time = 0;
           right_time = 0;
         }
-        allForward(slow);
+        forwardTicks(slow, ticksAfterLine);
         delay(block_delay*1/2);
         allStop();
 
