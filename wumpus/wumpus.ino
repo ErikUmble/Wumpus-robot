@@ -354,4 +354,8 @@ void setup() {
 
 void loop() {
   robot.start();
+  // celebrate
+  ccw(720);
+  // stop
+  while(true);
 }
