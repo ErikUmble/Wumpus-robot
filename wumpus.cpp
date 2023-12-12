@@ -34,6 +34,6 @@ class BitBot: public Robot {
 
 int main() {
     BitBot robot;
-    robot.enable_logs(std::cout); // commet out for running with wumpus_tester.py
+    //robot.enable_logs(std::cout); // commet out for running with wumpus_tester.py
     robot.start();
 }
