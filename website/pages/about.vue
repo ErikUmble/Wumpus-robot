@@ -17,7 +17,6 @@
             </div>
             <div>
                 <img src="@/assets/images/wumpus.png" alt="Wumpus World" class="w-full">
-                <span class="text-center w-full">Image credit: geeksforgeeks.com</span>
             </div>
         </div>
     </section>

@@ -4,7 +4,7 @@
     <template v-slot:subtitle>Decisions in hardware and software</template>
   </PageTitle>
 
-  <article class="columns-2">
+  <article class="columns-1 lg:columns-2">
     <div class="break-after-column">
       <section class="mb-8 mx-auto px-6 container">
 	<h2 class="text-3xl font-semibold mb-4 text-white">Hardware</h2>

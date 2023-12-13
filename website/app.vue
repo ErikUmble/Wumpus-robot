@@ -8,9 +8,9 @@
         <!-- Navigation Links -->
         <nav class="flex items-center">
           <ul class="flex space-x-4">
-            <li>
+            <!--<li>
               <nuxt-link to="/" class="text-white hover:text-gray-300">Home</nuxt-link>
-            </li>
+            </li>-->
             <li>
               <nuxt-link to="/about" class="text-white hover:text-gray-300">About</nuxt-link>
             </li>
