@@ -4,13 +4,14 @@
     <template v-slot:subtitle>Decisions in hardware and software</template>
   </PageTitle>
 
-  <article class="columns-1 lg:columns-2">
-    <div class="break-after-column">
+  <article class="columns-1">
+    <div>
       <section class="mb-8 mx-auto px-6 container">
 	<h2 class="text-3xl font-semibold mb-4 text-white">Hardware</h2>
 	<p>
 	  NanoBot's "brains" come from the Arduino Nano 33 IoT. It uses 2 motors, 2 infrared sensors, and Bluetooth Low Energy (BLE) to move, sense lines, and receive sensory information, respectively.
 	</p>
+	<img src="@/assets/images/nanobot.png" alt="NanoBot" class="w-auto bg-base" style="max-height: 80vh;">
 	<p>
 	  The Arduino is plugged into the Rensselaer MinSeg Kit, which serves as a motor controller to control the motors safely. This kit enabled us to control the motors, but it also caused many problems for us. We studied <a src="https://cdn.shopify.com/s/files/1/0299/1013/files/MinSegNanoStick_Pinout_R3.pdf?v=1636244432">this schematic</a> carefully, but still made several mistakes using the wrong pins. For example, in our first time installing the infrared sensors, we accidentally connected them to the same pins as the motors, which caused the sensors to change based on whether or not the motors were turning, regardless of what color was beneath the sensors.
 	</p>
@@ -20,6 +21,7 @@
 	<p>
 	  Additionally, we spent a long time trying to improve the accuracy of NanoBot's movement. NanoBot will inevitably have inaccuracies because motors are not perfect and they don't simply turn a set number of rotations (and even if they did, wheels are not perfectly round, surfaces are not flawlessly flat, etc.). The reality is that any robot which interacts with its enviroment has to have a way to handle error. Part of handling error is trying to minimize it as much as possible. For minimizing the error in NanoBot's motion, we first used math to calculate the scale constant to increase power to the weaker motor in order to roughly equalize the two motors. After that, we examined other sources of inconsistencies, such as the ball pivot in the front of our robot. Our original metal ball pivot was heavy and caused unpredictable friction. So, we replaced the metal ball pivot with a plastic one. TODO: FINISH THIS SECTION!
 	</p>
+	<img src="@/assets/images/nano_pinout.webp" alt="Robot" class="w-auto m-2 py-2" style="max-height: 80vh;">
       </section>
     </div>
 
@@ -46,6 +48,10 @@
             <li>If glitter or stench scented, eliminate the possibility of gold or Wumpus in all non adjacent squares (since there are just one of each on the map).</li>
             <li>If NanoBot sensed something at a position and eliminated that option from 3 adjacent locations, then the 4th adjacent position must be the tile producing the scent</li>
 	  </ul>
+	  <div class="items-center justify-center">	    
+		<img src="@/assets/images/knowledge_animation.gif" alt="Knowledge Progression" class="w-auto" style="max-height: 80vh;">
+	  </div>
+	  
 	  In games that are solvable, but only under the assumption that they are solvable, NanoBot uses several more complex heuristics to determine which risky location is the one that 
 	  must be safe, based on the remaining positions where gold is possible and the elimination of paths that pass through 100% confirmed pits.
 	</p>
