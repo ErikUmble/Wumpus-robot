@@ -10,7 +10,10 @@
           <ul class="flex space-x-4">
             <!--<li>
               <nuxt-link to="/" class="text-white hover:text-gray-300">Home</nuxt-link>
-            </li>-->
+		 </li>-->
+	    <li>
+	      <nuxt-link to="/team" class="text-white hover:text-gray-300">Our Team</nuxt-link>
+	    </li>
             <li>
               <nuxt-link to="/about" class="text-white hover:text-gray-300">About</nuxt-link>
             </li>
