@@ -1,5 +1,5 @@
 import pytest
-from tests.wumpus import *
+from wumpus.wumpus import *
 
 # Note: because we access the board with board[x][y], each list inside board is a column
 # which is visually counterintuitive
