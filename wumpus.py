@@ -1,7 +1,6 @@
 """
-Note: this file is obsolte and has been replaced by wumpus.ino
-We originally planned to use an arduino nano that supports micropython, but then
-pivoted to one which required c++. 
+Note: this file can only run on Arduinos that can run MicroPython.
+Load the Arduino into Python mode using the bootloader before uploading this code
 """
 
 """

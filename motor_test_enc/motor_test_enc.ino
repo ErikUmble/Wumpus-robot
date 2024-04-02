@@ -7,7 +7,7 @@ Encoder m1encoder(2, 3);
 
 int motor2pin1 = 6;
 int motor2pin2 = 5;
-Encoder m2encoder(11, 21);
+Encoder m2encoder(11, 15);
 
 float OK_ERROR = 30;
 

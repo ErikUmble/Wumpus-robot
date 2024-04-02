@@ -1,5 +1,4 @@
 #include <ArduinoBLE.h>
-#include "SAMD_PWM.h"
 #include "robot.h"
 #include "Encoder.h"
 
@@ -13,21 +12,14 @@ Encoder m2encoder(11, 21);
 
 float OK_ERROR = 30;
 
-SAMD_PWM* motor1pin1pwm;
-SAMD_PWM* motor1pin2pwm;
-SAMD_PWM* motor2pin1pwm;
-SAMD_PWM* motor2pin2pwm;
-
-float stdFreq = 1000.0f; // operating frequency (unvarying)
-float zeroDuty = 0.0f; // off
-float slow = 22.0f; // slow speed
-float med = 30.0f;
+int slow = 45; // slow speed
+int med = 60;
 float turnProportion = 0.05; // turn speed
-float intProportion = 0.0015;
+int maxDuty = 70;
+float intProportion = 0.0025;
 int maxIntPower = 300;
-float maxDuty = 40.0;
 
-int block_delay = 3600;
+int block_delay = 1200;
 
 // scale motor 2's duty cycle by a constant to adjust for differences
 // in hardware between the two motors
@@ -58,47 +50,47 @@ bool ir_right() {
 }
 
 
-void m1Forward(float dutyCycle) {
+void m1Forward(int dutyCycle) {
   if (dutyCycle >= maxDuty) {
-    motor1pin1pwm->setPWM(motor1pin1, stdFreq, maxDuty);
-    motor1pin2pwm->setPWM(motor1pin2, stdFreq, 0.0f);
+    analogWrite(motor1pin1, maxDuty);
+    analogWrite(motor1pin2, 0);
   }
   else {
-    motor1pin1pwm->setPWM(motor1pin1, stdFreq, dutyCycle);
-    motor1pin2pwm->setPWM(motor1pin2, stdFreq, 0.0f);
+    analogWrite(motor1pin1, dutyCycle);
+    analogWrite(motor1pin2, 0);
   }
 }
 
-void m1Backward(float dutyCycle) {
+void m1Backward(int dutyCycle) {
   if (dutyCycle >= maxDuty) {
-    motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
-    motor1pin2pwm->setPWM(motor1pin2, stdFreq, maxDuty);
+    analogWrite(motor1pin1, 0);
+    analogWrite(motor1pin2, maxDuty);
   }
   else {
-    motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
-    motor1pin2pwm->setPWM(motor1pin2, stdFreq, dutyCycle);
+    analogWrite(motor1pin1, 0);
+    analogWrite(motor1pin2, dutyCycle);
   }
 }
 
-void m2Forward(float dutyCycle) {
-  if (dutyCycle * m2_scale >= maxDuty) {
-    motor2pin1pwm->setPWM(motor2pin1, stdFreq, maxDuty);
-    motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
+void m2Forward(int dutyCycle) {
+  if (dutyCycle * m2_scale >= (float)maxDuty) {
+    analogWrite(motor2pin1, maxDuty);
+    analogWrite(motor2pin2, 0);
   }
   else {
-    motor2pin1pwm->setPWM(motor2pin1, stdFreq, dutyCycle * m2_scale);
-    motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
+    analogWrite(motor2pin1, dutyCycle * m2_scale);
+    analogWrite(motor2pin2, 0);
   }
 }
 
-void m2Backward(float dutyCycle) {
-  if (dutyCycle * m2_scale >= maxDuty) {
-    motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
-    motor2pin2pwm->setPWM(motor2pin2, stdFreq, maxDuty);
+void m2Backward(int dutyCycle) {
+  if (dutyCycle * m2_scale >= (float)maxDuty) {
+    analogWrite(motor2pin1, 0);
+    analogWrite(motor2pin2, maxDuty);
   }
   else {
-    motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
-    motor2pin2pwm->setPWM(motor2pin2, stdFreq, dutyCycle * m2_scale);
+    analogWrite(motor2pin1, 0);
+    analogWrite(motor2pin2, dutyCycle * m2_scale);
   }
 }
 
@@ -132,10 +124,10 @@ void allBackward(float dutyCycle) {
 
 void allStop() {
   // set all duty cycles to 0
-  motor1pin1pwm->setPWM(motor1pin1, stdFreq, 0.0f);
-  motor1pin2pwm->setPWM(motor1pin2, stdFreq, 0.0f);
-  motor2pin1pwm->setPWM(motor2pin1, stdFreq, 0.0f);
-  motor2pin2pwm->setPWM(motor2pin2, stdFreq, 0.0f);
+  analogWrite(motor1pin1, 0);
+  analogWrite(motor1pin2, 0);
+  analogWrite(motor2pin1, 0);
+  analogWrite(motor2pin2, 0);
 }
 
 void ccw(long ticks) {
@@ -358,11 +350,10 @@ void setup() {
     BLE.advertise();
 
     // init and set all motor pins to 0
-    motor1pin1pwm = new SAMD_PWM(motor1pin1, stdFreq, 0.0f);
-    motor1pin2pwm = new SAMD_PWM(motor1pin2, stdFreq, 0.0f);
-    motor2pin1pwm = new SAMD_PWM(motor2pin1, stdFreq, 0.0f);
-    motor2pin2pwm = new SAMD_PWM(motor2pin2, stdFreq, 0.0f);
-
+    pinMode(motor1pin1, OUTPUT);
+    pinMode(motor1pin2, OUTPUT);
+    pinMode(motor2pin1, OUTPUT);
+    pinMode(motor2pin2, OUTPUT);
 
     // debugging
     while(true) {
