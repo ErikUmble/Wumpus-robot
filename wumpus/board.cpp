@@ -129,6 +129,7 @@ void Board::reduce(int scent, const Coordinate & pos) {
 }
 
 Coordinate Board::get_unique_pos(int tile) {
+    // returns the coordinate of the only position where the tile could exist on the board if there is only one such position
     std::vector<Coordinate> possible_pos;
     for (int x = 0; x < WIDTH; x++) {
         
@@ -228,7 +229,7 @@ std::ostream & operator<<(std::ostream & out, const Board & board) {
 }
 std::ostream & operator<<(std::ostream & out, const std::vector<std::vector<int> > & v) {
     /*
-    prints of the 2d vector v with the shap of board with (0, 0) in lower left corner
+    prints of the 2d vector v with the shape of board with (0, 0) in lower left corner
     */
     assert(v.size() == WIDTH && v[0].size() == HEIGHT);
     for (int y = HEIGHT - 1; y >= 0; y--) {

@@ -43,5 +43,14 @@
 
 
 </section>
+<section class="text-center items-center contnet-center py-12">
+    <div class="flex justify-center">
+        <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/b1rY62tjVvY?si=52g0-tu7h1GnlUls" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+    <p class="py-2 px-4">And of course, we had to include the bloopers.
+    </p>
+
+
+</section>
     
 </template>

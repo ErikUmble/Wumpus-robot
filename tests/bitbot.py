@@ -1,0 +1,1 @@
+# TODO: test wumpus.py algorithm with a bit bot

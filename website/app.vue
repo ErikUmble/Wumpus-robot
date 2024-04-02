@@ -29,6 +29,9 @@
             <li>
               <nuxt-link to="/demo" class="text-white hover:text-gray-300">Demo</nuxt-link>
             </li>
+            <li>
+              <nuxt-link to="/team" class="text-white hover:text-gray-300">Team</nuxt-link>
+            </li>
           </ul>
         </nav>
       </div>
