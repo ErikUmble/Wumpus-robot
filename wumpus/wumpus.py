@@ -523,7 +523,7 @@ class Robot:
             # there is either just one position, or multiple equally good guesses
             risk_pos = potential_safe[0]
 
-        if self.board[risk_pos[0]][risk_pos[1]] & Tile.WUMPUS:
+        if risk_pos and self.board[risk_pos[0]][risk_pos[1]] & Tile.WUMPUS:
             self.shoot_at(*risk_pos)
         # mark the tile as safe since that's what we will assume from now on
         self.board[risk_pos[0]][risk_pos[1]] = self.board[risk_pos[0]][risk_pos[1]] & Tile.EMPTY
