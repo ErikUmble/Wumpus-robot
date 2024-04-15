@@ -95,7 +95,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
 
     """
     if start_x >= WIDTH or end_x >= WIDTH or start_y >= HEIGHT or end_y >= HEIGHT:
-        return None
+        return []
     
     costs = []
     MAX_VALUE = WIDTH * HEIGHT  # no valid path can take this many moves
@@ -140,7 +140,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
 
     # no path if start location has path cost at least as high as max value
     if costs[start_x][start_y] >= MAX_VALUE:
-        return None
+        return []
     
     # path exists, so compute the directions it follows
     x, y = start_x, start_y
