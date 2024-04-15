@@ -106,10 +106,10 @@ class NanoBot(Robot):
         self.enc2dir = 1
 
         # add interrupt callbacks to track encoder ticks
-        enc1p1.irq(lambda pin: self.enc_pin_high(encpins[0]), Pin.IRQ_RISING)
-        enc1p2.irq(lambda pin: self.enc_pin_high(encpins[1]), Pin.IRQ_RISING)
-        enc2p1.irq(lambda pin: self.enc_pin_high(encpins[2]), Pin.IRQ_RISING)
-        enc2p2.irq(lambda pin: self.enc_pin_high(encpins[3]), Pin.IRQ_RISING)
+        self.enc1p1.irq(lambda pin: self.enc_pin_high(encpins[0]), Pin.IRQ_RISING)
+        self.enc1p2.irq(lambda pin: self.enc_pin_high(encpins[1]), Pin.IRQ_RISING)
+        self.enc2p1.irq(lambda pin: self.enc_pin_high(encpins[2]), Pin.IRQ_RISING)
+        self.enc2p2.irq(lambda pin: self.enc_pin_high(encpins[3]), Pin.IRQ_RISING)
 
         # initialize ir sensors
         ir_left_sensor = ADC(29)
