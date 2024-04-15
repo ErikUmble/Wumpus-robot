@@ -393,7 +393,7 @@ class Robot:
                     continue
 
                 # skip tiles that we already sniffed at 
-                if self.scents[x][y] & Tile.UNSNIFFED:
+                if not (self.scents[x][y] & Tile.UNSNIFFED):
                     continue
                 
                 sum = 0
