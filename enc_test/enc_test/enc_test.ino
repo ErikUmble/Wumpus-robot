@@ -11,6 +11,7 @@ void setup() {
 void loop() {
   delay(500);
   // put your main code here, to run repeatedly:
-  Serial.println(m1encoder.read());
+  Serial.print(m1encoder.read());
+  Serial.print(" ");
   Serial.println(m2encoder.read());
 }
