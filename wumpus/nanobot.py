@@ -73,10 +73,10 @@ class NanoBot(Robot):
         self.encpins = (15, 25, 7, 27)
 
         # initialize motors
-        self.m1pin1 = Pin(21)
-        self.m1pin2 = Pin(4)
-        self.m2pin1 = Pin(18)
-        self.m2pin2 = Pin(17)
+        m1pin1 = Pin(21)
+        m1pin2 = Pin(4)
+        m2pin1 = Pin(18)
+        m2pin2 = Pin(17)
 
         self.m1pwm1 = PWM(m1pin1)
         self.m1pwm2 = PWM(m1pin2)
@@ -95,10 +95,10 @@ class NanoBot(Robot):
         self.kd = 0.04
 
         # initialize encoder variables
-        self.enc1p1 = Pin(encpins[0], Pin.IN)
-        self.enc1p2 = Pin(encpins[1], Pin.IN)
-        self.enc2p1 = Pin(encpins[2], Pin.IN)
-        self.enc2p2 = Pin(encpins[3], Pin.IN)
+        self.enc1p1 = Pin(self.encpins[0], Pin.IN)
+        self.enc1p2 = Pin(self.encpins[1], Pin.IN)
+        self.enc2p1 = Pin(self.encpins[2], Pin.IN)
+        self.enc2p2 = Pin(self.encpins[3], Pin.IN)
 
         self.enc1 = 0
         self.enc2 = 0
@@ -237,8 +237,4 @@ class NanoBot(Robot):
         while (response := self.bluetooth.read("int")) == ord("@"):
             pass
         return response
-
-if __name__ == "__main__()":
-    myrobot = NanoBot()
-    myrobot.start()
 
