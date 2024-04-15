@@ -70,6 +70,9 @@ class NanoBot(Robot):
 
         # initialize bluetooth
         self.bluetooth = NanoBotBLE(bluetooth.BLE())
+        self.bluetooth.send(0)
+        while self.bluetooth.read("int") == 0:
+            continue
         self.encpins = (15, 25, 7, 27)
 
         # initialize motors
