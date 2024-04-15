@@ -39,16 +39,22 @@ forward should move the robot one block forward in the direction it is facing.
 
 """
 
-from enum import Enum
-from queue import Queue
-
 WIDTH = 4
 HEIGHT = 4
 
 # Valid movement directions are one tile horizontally or vertically
 DIRECTIONS = [(1, 0), (0, 1), (-1, 0), (0, -1)]
 
-class Tile(Enum):
+class Queue(list):
+    # Queue as a list for micropython support
+    def put(self, item):
+        self.append(item)
+    def get(self):
+        return self.pop(0)
+    def empty(self):
+        return len(self) == 0
+
+class Tile:
     UNKNOWN = 0b111
     EMPTY = 0b000
     PIT = 0b001
@@ -57,7 +63,7 @@ class Tile(Enum):
     UNSNIFFED = 0b10000  # only used inside the scents list
 
 
-class States(Enum):
+class States:
     # State values increase in order of progression into the solution
     INITIAL = 0
     GOLD_KNOWN = 1
@@ -167,7 +173,7 @@ class Board(list):
         for x in range(WIDTH):
             col = []
             for y in range(HEIGHT):
-                col.append(Tile.UNKNOWN.value)
+                col.append(Tile.UNKNOWN)
             self.append(col)
 
         
@@ -181,7 +187,7 @@ class Board(list):
         about surrounding tiles.
         """
         if (scent == 0b1000):
-            self[x][y] = Tile.GOLD.value
+            self[x][y] = Tile.GOLD
             self.gold_pos = (x, y)
             return
         
@@ -189,9 +195,9 @@ class Board(list):
             self[x_adj][y_adj] &= scent
         
         # since there is just 1 gold and 1 wumpus, we can further reduce from these scents
-        if scent & Tile.GOLD.value or scent & Tile.WUMPUS.value:
+        if scent & Tile.GOLD or scent & Tile.WUMPUS:
             # create a mask that is zero only in gold and/or wumpus location respectively if they are in the scent
-            mask = ~(scent & (Tile.GOLD.value | Tile.WUMPUS.value))
+            mask = ~(scent & (Tile.GOLD | Tile.WUMPUS))
             
             # apply mask to every location except for the 4 adjacent to where the scent is
             for _x in range(WIDTH):
@@ -203,32 +209,32 @@ class Board(list):
         """
         if the tile at position (x, y) can be fully determined by the scents provided, this returns
         that tile value,
-        otherwise it returns Tile.UNKNOWN.value 
+        otherwise it returns Tile.UNKNOWN 
         """
         # intuition: consider adjacent positions, and if any of them sensed something that is definitely 
         # not at any of its other adjacent positions, then it must be at the current position
         for _x, _y in adjacent_positions(x, y):
             if scents[_x][_y] == 0:
                 # definitely safe if adjacent tile had no scent
-                return Tile.EMPTY.value
-            if scents[_x][_y] & Tile.UNSNIFFED.value:
+                return Tile.EMPTY
+            if scents[_x][_y] & Tile.UNSNIFFED:
                 continue
 
             for tile in [Tile.PIT, Tile.WUMPUS, Tile.GOLD]:
-                if (scents[_x][_y] & tile.value) == 0:
+                if (scents[_x][_y] & tile) == 0:
                     # skip if this tile type was not scented here
                     continue
                 possible_pos = []
 
                 for __x, __y in adjacent_positions(_x, _y):
                     # add neighbors that are not the current tile
-                    if self[__x][__y] & tile.value and (__x, __y) != (x, y):
+                    if self[__x][__y] & tile and (__x, __y) != (x, y):
                         possible_pos.append((__x, __y))
 
                 if len(possible_pos) == 0:
                     # no other options for where that scent could be coming from
-                    return tile.value
-        return Tile.UNKNOWN.value
+                    return tile
+        return Tile.UNKNOWN
         
     def eliminate(self, scents):
         """
@@ -255,26 +261,26 @@ class Board(list):
         # do this for every tile with a nonzero scent
         for x in range(WIDTH):
             for y in range(HEIGHT):
-                if scents[x][y] == Tile.UNSNIFFED.value:
+                if scents[x][y] == Tile.UNSNIFFED:
                     continue
 
                 for tile in [Tile.PIT, Tile.GOLD, Tile.WUMPUS]:
-                    if (scents[x][y] & tile.value) == 0:
+                    if (scents[x][y] & tile) == 0:
                         # did not sense this tile type here
                         continue
 
                     possible_pos = []
                     for _x, _y in adjacent_positions(x, y):
-                        if self[_x][_y] & tile.value:
+                        if self[_x][_y] & tile:
                             possible_pos.append((_x, _y))
 
                     if len(possible_pos) == 1:
                         _x, _y = possible_pos[0]
-                        self[_x][_y] = tile.value
+                        self[_x][_y] = tile
 
         # if we do not know where the wumpus or gold is, see if there is only option for where it can be
-        self.gold_pos = self.gold_pos or get_unique_pos(Tile.GOLD.value)
-        self.wumpus_pos = self.gold_pos or get_unique_pos(Tile.WUMPUS.value)
+        self.gold_pos = self.gold_pos or get_unique_pos(Tile.GOLD)
+        self.wumpus_pos = self.gold_pos or get_unique_pos(Tile.WUMPUS)
     
     def __str__(self):
         """
@@ -323,7 +329,7 @@ class Robot:
         for j in range(WIDTH):
             col = []
             for i in range(HEIGHT):
-                col.append(Tile.UNSNIFFED.value)
+                col.append(Tile.UNSNIFFED)
 
     def start(self):
         while self.state < States.GOLD_KNOWN:
@@ -386,14 +392,14 @@ class Robot:
                     continue
 
                 # skip tiles that we already sniffed at 
-                if self.scents[x][y] & Tile.UNSNIFFED.value:
+                if self.scents[x][y] & Tile.UNSNIFFED:
                     continue
                 
                 sum = 0
                 for adj in adjacent_positions(x, y):
                     sum += self.board[adj[0]][adj[1]]
                     # a tile is highly valuable if it is adjacent to a tile that scented gold
-                    if (self.scents[adj[0]][adj[1]] & Tile.GOLD.value) and (self.board[x][y] & Tile.GOLD.value):
+                    if (self.scents[adj[0]][adj[1]] & Tile.GOLD) and (self.board[x][y] & Tile.GOLD):
                         sum += 100
                 if sum > max_sum or (sum == max_sum and self.distance(self.start_pos, potential) < self.distance(self.start_pos, best_pos)):
                     max_sum = sum
@@ -473,7 +479,7 @@ class Robot:
             for y in range(HEIGHT):
                 tile = self.board.deduce(x, y, self.scents)
                 # forbid tiles known to be pits
-                if tile == Tile.PIT.value:
+                if tile == Tile.PIT:
                     col.append(True)
                 else:
                     col.append(False)
@@ -484,7 +490,7 @@ class Robot:
         potential_safe = []
         for x in range(WIDTH):
             for y in range(HEIGHT):
-                if (self.scents[x][y] & Tile.UNSNIFFED.value) and not forbidden[x][y] and len(shortest_path(self.x, self.y, x, y, self.board)) > 0:
+                if (self.scents[x][y] & Tile.UNSNIFFED) and not forbidden[x][y] and len(shortest_path(self.x, self.y, x, y, self.board)) > 0:
                     potential_safe.append((x, y))
 
         risk_pos = None
@@ -497,9 +503,9 @@ class Robot:
             while not filtered:
                 filtered = True
                 for pos in potential_safe:
-                    possible_path_to_gold = self.board[pos[0]][pos[1]] & Tile.GOLD.value
+                    possible_path_to_gold = self.board[pos[0]][pos[1]] & Tile.GOLD
                     for adj in adjacent_positions(*pos):
-                        if self.board[adj[0]][adj[1]] & Tile.GOLD.value:
+                        if self.board[adj[0]][adj[1]] & Tile.GOLD:
                             possible_path_to_gold = True
                     if not possible_path_to_gold:
                         potential_safe.remove(pos)
@@ -516,10 +522,10 @@ class Robot:
             # there is either just one position, or multiple equally good guesses
             risk_pos = potential_safe[0]
 
-        if self.board[risk_pos[0]][risk_pos[1]] & Tile.WUMPUS.value:
+        if self.board[risk_pos[0]][risk_pos[1]] & Tile.WUMPUS:
             self.shoot_at(*risk_pos)
         # mark the tile as safe since that's what we will assume from now on
-        self.board[risk_pos[0]][risk_pos[1]] = self.board[risk_pos[0]][risk_pos[1]] & Tile.EMPTY.value
+        self.board[risk_pos[0]][risk_pos[1]] = self.board[risk_pos[0]][risk_pos[1]] & Tile.EMPTY
         return risk_pos
 
     def log(self, message):
@@ -547,7 +553,7 @@ class Robot:
         self.has_arrow = False
 
         # zero out the wumpus bit from the target position by setting the bit to 1 then flipping it
-        self.board[x][y] = (self.board[x][y] | Tile.WUMPUS.value) ^ Tile.WUMPUS.value
+        self.board[x][y] = (self.board[x][y] | Tile.WUMPUS) ^ Tile.WUMPUS
 
     def _rot_cw(self):
         """
