@@ -68,7 +68,7 @@ class NanoBot(Robot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # initialize bluetooth 
+        # initialize bluetooth
         self.bluetooth = NanoBotBLE(bluetooth.BLE())
         self.encpins = (15, 25, 7, 27)
 
@@ -93,7 +93,7 @@ class NanoBot(Robot):
         self.kp = 0.8
         self.ki = 0.08
         self.kd = 0.04
-        
+
         # initialize encoder variables
         self.enc1p1 = Pin(encpins[0], Pin.IN)
         self.enc1p2 = Pin(encpins[1], Pin.IN)
@@ -131,76 +131,76 @@ class NanoBot(Robot):
             else:
                 self.enc2dir = -1
 
-def calc_duty(self, duty_100):
-    return int(duty_100 * max_duty / 100)
+    def calc_duty(self, duty_100):
+        return int(duty_100 * max_duty / 100)
 
-def m1Forward(self, dutyCycle):
-    self.m1pwm1.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
-    self.m1pwm2.duty_u16(0)
+    def m1Forward(self, dutyCycle):
+        self.m1pwm1.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
+        self.m1pwm2.duty_u16(0)
 
-def m1Backward(self, dutyCycle):
-    self.m1pwm1.duty_u16(0)
-    self.m1pwm2.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
+    def m1Backward(self, dutyCycle):
+        self.m1pwm1.duty_u16(0)
+        self.m1pwm2.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
 
-def m1Signed(self, dutyCycle):
-    if dutyCycle >= 0:
-        self.m1Forward(dutyCycle)
-    else:
-        self.m1Backward(-dutyCycle)
+    def m1Signed(self, dutyCycle):
+        if dutyCycle >= 0:
+            self.m1Forward(dutyCycle)
+        else:
+            self.m1Backward(-dutyCycle)
 
-def m2Forward(self, dutyCycle):
-    self.m2pwm1.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
-    self.m2pwm2.duty_u16(0)
+    def m2Forward(self, dutyCycle):
+        self.m2pwm1.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
+        self.m2pwm2.duty_u16(0)
 
-def m2Backward(self, dutyCycle):
-    self.m2pwm1.duty_u16(0)
-    self.m2pwm2.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
+    def m2Backward(self, dutyCycle):
+        self.m2pwm1.duty_u16(0)
+        self.m2pwm2.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
 
-def m2Signed(self, dutyCycle):
-    if dutyCycle >= 0:
-        self.m2Forward(dutyCycle)
-    else:
-        self.m2Backward(-dutyCycle)
+    def m2Signed(self, dutyCycle):
+        if dutyCycle >= 0:
+            self.m2Forward(dutyCycle)
+        else:
+            self.m2Backward(-dutyCycle)
 
-def allStop():
-    # set all duty cycles to 0
-    self.m1pwm1.duty_u16(0)
-    self.m1pwm2.duty_u16(0)
-    self.m2pwm1.duty_u16(0)
-    self.m2pwm2.duty_u16(0)
+    def allStop():
+        # set all duty cycles to 0
+        self.m1pwm1.duty_u16(0)
+        self.m1pwm2.duty_u16(0)
+        self.m2pwm1.duty_u16(0)
+        self.m2pwm2.duty_u16(0)
 
-def setup():
-    # initialize frequencies
-    self.m1pwm1.freq(1000)
-    self.m1pwm2.freq(1000)
-    self.m2pwm1.freq(1000)
-    self.m2pwm2.freq(1000)
+    def setup():
+        # initialize frequencies
+        self.m1pwm1.freq(1000)
+        self.m1pwm2.freq(1000)
+        self.m2pwm1.freq(1000)
+        self.m2pwm2.freq(1000)
 
-def rot(self, ccw_dir=1):
-    self.enc1 = 0
-    self.enc2 = 0
-    m1_integral = 0
-    m2_integral = 0
-    period = 1/10
-    m1_last_error = None
-    m2_last_error = None
-    while abs(self.enc1 - self.turn90ticks * ccw_dir) > self.turn_error or abs(self.enc2 + self.turn90ticks * ccw_dir) > self.turn_error:
-        m1_current_error = self.turn90ticks * ccw_dir - self.enc1
-        m2_current_error = -self.turn90ticks * ccw_dir - self.enc2
-        m1_integral += m1_current_error * period
-        m2_integral += m2_current_error * period
-        m1_derivative = 0
-        if not m1_last_error is None:
-            m1_derivative = (m1_current_error - m1_last_error) / period
-        m2_derivative = 0
-        if not m2_last_error is None:
-            m2_derivative = (m2_current_error - m2_last_error) / period
-        self.m1Signed(self.kp * m1_current_error + self.ki * m1_integral + self.kd * m1_derivative)
-        self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
-        m1_last_error = m1_current_error
-        m2_last_error = m2_current_error
-        time.sleep(period)
-        
+    def rot(self, ccw_dir=1):
+        self.enc1 = 0
+        self.enc2 = 0
+        m1_integral = 0
+        m2_integral = 0
+        period = 1/10
+        m1_last_error = None
+        m2_last_error = None
+        while abs(self.enc1 - self.turn90ticks * ccw_dir) > self.turn_error or abs(self.enc2 + self.turn90ticks * ccw_dir) > self.turn_error:
+            m1_current_error = self.turn90ticks * ccw_dir - self.enc1
+            m2_current_error = -self.turn90ticks * ccw_dir - self.enc2
+            m1_integral += m1_current_error * period
+            m2_integral += m2_current_error * period
+            m1_derivative = 0
+            if not m1_last_error is None:
+                m1_derivative = (m1_current_error - m1_last_error) / period
+            m2_derivative = 0
+            if not m2_last_error is None:
+                m2_derivative = (m2_current_error - m2_last_error) / period
+            self.m1Signed(self.kp * m1_current_error + self.ki * m1_integral + self.kd * m1_derivative)
+            self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
+            m1_last_error = m1_current_error
+            m2_last_error = m2_current_error
+            time.sleep(period)
+
     def rot_cw(self):
         self.rot(1)
 
@@ -209,12 +209,15 @@ def rot(self, ccw_dir=1):
 
     def ir_left(self):
         return self.ir_left_sensor.read_u16() < 65535 // 2
-    
+
     def ir_right(self):
         return self.ir_right_sensor.read_u16() < 65535 // 2
 
     def forward(self):
-        
+        self.m1Forward(15000)
+        self.m2Forward(15000)
+        time.sleep(5)
+        allStop()
 
     def receive_scent(self):
         # send ? to get scent
@@ -235,4 +238,7 @@ def rot(self, ccw_dir=1):
             pass
         return response
 
+if __name__ == "__main__()":
+    myrobot = NanoBot()
+    myrobot.start()
 
