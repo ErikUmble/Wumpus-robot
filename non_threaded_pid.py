@@ -20,36 +20,59 @@ m2pwm2 = PWM(m2pin2)
 LED = Pin(6, Pin.OUT)
 max_duty = 65535 # constant
 
-saturated_duty = 6000 # choice for max speed
+saturated_duty = 20000 # choice for max speed
 
-turn90ticks = 600
-turn_error = 20
+turn90ticks = 120
+turn_error = 10
 
 enc_max_value = 20000
 
-kp = 0.08
-ki = 0.008
-kd = 0.008
+kp = 0.8
+ki = 0.08
+kd = 0.04
 
 enc1p1 = Pin(25)
 enc1p2 = Pin(15)
 enc2p1 = Pin(7)
 enc2p2 = Pin(27)
 
-enc1 = RotaryIRQ(pin_num_clk=25,
-              pin_num_dt=15,
-              min_val=0,
-              max_val=enc_max_value,
-              reverse=False,
-              range_mode=RotaryIRQ.RANGE_WRAP)
+encpins = (15, 25, 7, 27)
+
+enc1p1 = Pin(encpins[0], Pin.IN)
+enc1p2 = Pin(encpins[1], Pin.IN)
+enc2p1 = Pin(encpins[2], Pin.IN)
+enc2p2 = Pin(encpins[3], Pin.IN)
+
+enc1 = 0
+enc2 = 0
+enc1dir = 1
+enc2dir = 1
+
+def enc_pin_high(pin):
+    global enc1dir
+    global enc2dir
+    global enc1
+    global enc2
+    if pin == encpins[0] or pin == encpins[1]:
+        if enc1p1.value() == 1 and enc1p2.value() == 1:
+            enc1 += 1 * enc1dir
+        elif enc1p1.value() == 1:
+            enc1dir = 1
+        else:
+            enc1dir = -1
+    if pin == encpins[2] or pin == encpins[3]:
+        if enc2p1.value() == 1 and enc2p2.value() == 1:
+            enc2 += 1 * enc2dir
+        elif enc2p1.value() == 1:
+            enc2dir = -1
+        else:
+            enc2dir = 1
 
 
-enc2 = RotaryIRQ(pin_num_clk=7,
-            pin_num_dt=27,
-            min_val=0,
-            max_val=enc_max_value,
-            reverse=False,
-            range_mode=RotaryIRQ.RANGE_WRAP)
+enc1p1.irq(lambda pin: enc_pin_high(15), Pin.IRQ_RISING)
+enc1p2.irq(lambda pin: enc_pin_high(25), Pin.IRQ_RISING)
+enc2p1.irq(lambda pin: enc_pin_high(7), Pin.IRQ_RISING)
+enc2p2.irq(lambda pin: enc_pin_high(27), Pin.IRQ_RISING)
 
 def calc_duty(duty_100):
     return int(duty_100 * max_duty / 100)
@@ -97,16 +120,18 @@ def setup():
     m2pwm2.freq(1000)
 
 def ccw():
-    enc1.set(value=enc_max_value // 2)
-    enc2.set(value=enc_max_value // 2)
+    global enc1
+    global enc2
+    enc1 = 0
+    enc2 = 0
     m1_integral = 0
     m2_integral = 0
-    period = 1/100
+    period = 1/10
     m1_last_error = None
     m2_last_error = None
-    while abs(enc1.value() - enc_max_value // 2 - turn90ticks) > turn_error or abs(enc2.value() - enc_max_value // 2 - turn90ticks) > turn_error:
-        m1_current_error = turn90ticks - enc1.value() + enc_max_value // 2
-        m2_current_error = -turn90ticks - enc2.value() + enc_max_value // 2
+    while abs(enc1 - turn90ticks) > turn_error or abs(enc2 + turn90ticks) > turn_error:
+        m1_current_error = turn90ticks - enc1
+        m2_current_error = -turn90ticks - enc2
         m1_integral += m1_current_error * period
         m2_integral += m2_current_error * period
         m1_derivative = 0
@@ -119,7 +144,7 @@ def ccw():
         m2Signed(kp * m2_current_error + ki * m2_integral + kd * m2_derivative)
         m1_last_error = m1_current_error
         m2_last_error = m2_current_error
-        print(f'{enc1.value()} {enc2.value()} {m1_current_error} {m2_current_error} {m1_integral} {m2_integral}')
+        print(f'{enc1} {enc2} {m1_current_error} {m2_current_error} {m1_integral} {m2_integral}')
         time.sleep(period)
 
 setup()
@@ -130,11 +155,3 @@ while True:
     LED.on()
     allStop()
     time.sleep(5)
-
-
-
-
-
-
-
-

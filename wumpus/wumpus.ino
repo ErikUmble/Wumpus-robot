@@ -14,10 +14,11 @@ float OK_ERROR = 30;
 
 int slow = 45; // slow speed
 int med = 60;
-float turnProportion = 0.05; // turn speed
 int maxDuty = 70;
-float intProportion = 0.0025;
-int maxIntPower = 300;
+
+float kp = 0.05;
+float ki = 0.005;
+float kd = 0.0025;
 
 int block_delay = 1200;
 
@@ -135,55 +136,25 @@ void ccw(long ticks) {
   m2encoder.readAndReset();
   float m1integral = 0;
   float m2integral = 0;
-  long timeSinceStart = 0;
+  int m1_last_value = 0;
+  int m2_last_value = 0;
+  int period = 0.05;
   while (abs(m1encoder.read() - ticks) > OK_ERROR || abs(m2encoder.read() + ticks) > OK_ERROR) {
-    if (abs(m1encoder.read() - ticks) > OK_ERROR) {
-      float intPower = maxIntPower;
-      if (intProportion * m1integral < maxIntPower) {
-        intPower = intProportion * m1integral;
-      }
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() - ticks) + intPower));
-      m1integral += (m1encoder.read() - ticks) * (timeSinceStart / 2000);
+    float m1_current_error = m1encoder.read() - ticks;
+    float m2_current_error = m2encoder.read() + ticks;
+    if (abs(m1_current_error) > OK_ERROR) {
+      m1integral += m1_current_error * period;
+      float m1derivative = (m1encoder.read() - m1_last_value) / period;
+      m1SignedDirection(-1 * (kp * m1_current_error + ki * m1integral + kd * m1derivative));
     }
-    if (abs(m2encoder.read() + ticks) > OK_ERROR) {
-      float intPower = maxIntPower;
-      if (intProportion * m2integral < maxIntPower) {
-        intPower = intProportion * m2integral;
-      }
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() + ticks) + intPower));
-      m2integral += (m2encoder.read() + ticks) * (timeSinceStart / 2000);
+    if (abs(m2_current_error) > OK_ERROR) {
+      m2integral += m2_current_error * period;
+      float m2derivative = (m2encoder.read() - m2_last_value) / period;
+      m2SignedDirection(-1 * (kp * m2_current_error + ki * m2integral + kd * m2derivative));
     }
-    timeSinceStart += 50;
-    delay(50);
-  }
-  allStop();
-}
-
-void cw(long ticks) {
-  m1encoder.readAndReset();
-  m2encoder.readAndReset();
-  float m1integral = 0;
-  float m2integral = 0;
-  long timeSinceStart = 0;
-  while (abs(m1encoder.read() + ticks) > OK_ERROR || abs(m2encoder.read() - ticks) > OK_ERROR) {
-    if (abs(m1encoder.read() + ticks) > OK_ERROR) {
-      float intPower = maxIntPower;
-      if (intProportion * m1integral < maxIntPower) {
-        intPower = intProportion * m1integral;
-      }
-      m1SignedDirection(-1 * (turnProportion * (m1encoder.read() + ticks) + intPower));
-      m1integral += (m1encoder.read() + ticks) * (timeSinceStart / 2000);
-    }
-    if (abs(m2encoder.read() - ticks) > OK_ERROR) {
-      float intPower = maxIntPower;
-      if (intProportion * m2integral < maxIntPower) {
-        intPower = intProportion * m2integral;
-      }
-      m2SignedDirection(-1 * (turnProportion * (m2encoder.read() - ticks) + intPower));
-      m2integral += (m2encoder.read() - ticks) * (timeSinceStart / 2000);
-    }
-    timeSinceStart += 50;
-    delay(50);
+    m1_last_value = m1encoder.read();
+    m2_last_value = m2encoder.read();
+    delay(period * 1000);
   }
   allStop();
 }
@@ -220,7 +191,7 @@ class NanoBot: public Robot {
     void rot_cw() {
 
         // turn NanoBot
-        cw(turn90ticks);
+        ccw(-turn90ticks);
 
         // update internal state
         super::rot_cw();
@@ -276,7 +247,7 @@ class NanoBot: public Robot {
 
 
           if (left_time < right_time) ccw((right_time - left_time));
-          else cw((left_time - right_time) * 2);
+          else ccw((left_time - right_time) * -2);
           white_left = false;
           white_right = false;
           left_time = 0;
