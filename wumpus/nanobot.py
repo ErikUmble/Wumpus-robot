@@ -4,6 +4,9 @@ import bluetooth
 import time
 from micropython import const
 from ble_advertising import advertising_payload
+import rp2
+import machine
+from machine import Pin, PWM, ADC
 
 # Define BLE constants (these are not packaged in bluetooth for space efficiency)
 _IO_CAPABILITY_DISPLAY_ONLY = const(0)
@@ -108,6 +111,10 @@ class NanoBot(Robot):
         enc2p1.irq(lambda pin: self.enc_pin_high(encpins[2]), Pin.IRQ_RISING)
         enc2p2.irq(lambda pin: self.enc_pin_high(encpins[3]), Pin.IRQ_RISING)
 
+        # initialize ir sensors
+        ir_left_sensor = ADC(29)
+        ir_right_sensor = ADC(28)
+
     def enc_pin_high(self, pin):
         if pin == self.encpins[0] or pin == self.encpins[1]:
             if self.enc1p1.value() == 1 and self.enc1p2.value() == 1:
@@ -200,8 +207,14 @@ def rot(self, ccw_dir=1):
     def rot_ccw(self):
         self.rot(-1)
 
+    def ir_left(self):
+        return self.ir_left_sensor.read_u16() < 65535 // 2
+    
+    def ir_right(self):
+        return self.ir_right_sensor.read_u16() < 65535 // 2
+
     def forward(self):
-        pass
+        
 
     def receive_scent(self):
         # send ? to get scent
