@@ -330,6 +330,7 @@ class Robot:
             col = []
             for i in range(HEIGHT):
                 col.append(Tile.UNSNIFFED)
+            self.scents.append(col)
 
     def start(self):
         while self.state < States.GOLD_KNOWN:
