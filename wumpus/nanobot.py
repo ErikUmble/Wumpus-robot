@@ -12,6 +12,9 @@ from machine import Pin, PWM, ADC
 _IO_CAPABILITY_DISPLAY_ONLY = const(0)
 _FLAG_READ = const(0x0002)
 _FLAG_WRITE = const(0x0008)
+_IRQ_CENTRAL_CONNECT = const(1)
+_IRQ_CENTRAL_DISCONNECT = const(2)
+_IRQ_GATTS_WRITE = const(3)
 
 class NanoBotBLE:
     """
@@ -31,13 +34,35 @@ class NanoBotBLE:
             le_secure=True,
             io=_IO_CAPABILITY_DISPLAY_ONLY
         )
+        self._ble.irq(self._irq)
         ((self._handle,),) = self._ble.gatts_register_services((_NanoBot_SERVICE,))
         self._connections = set()
         self._payload = advertising_payload(name=name, services=[_SERVICE_UUID])
         self._advertise()
+        self.value = 0
 
     def _advertise(self, interval_us=500000):
         self._ble.gap_advertise(interval_us, adv_data=self._payload)
+
+    def _irq(self, event, data):
+        # handle bluetooth event
+        if event == _IRQ_CENTRAL_CONNECT:
+            # handle succesfull connection
+            conn_handle, addr_type, addr = data
+            self._connections.add(conn_handle)
+
+        elif event == _IRQ_CENTRAL_DISCONNECT:
+            # handle disconnect
+            conn_handle, _, _ = data
+            self._connections.remove(conn_handle)
+            self._advertise()
+
+        elif event == _IRQ_GATTS_WRITE:
+            conn_handle, value_handle = data
+            if conn_handle in self._connections:
+                # Value has been written to the characteristic
+                self.value = self._ble.gatts_read(value_handle)
+                
 
     def send(self, value):
         # Writes value (as byte) to characteristic
@@ -52,7 +77,8 @@ class NanoBotBLE:
 
     def read(self, as_type="bytes"):
         # reads value from characteristic and returns it as specified type
-        value = self._ble.gatts_read(self._handle)
+        #value = self._ble.gatts_read(self._handle)
+        value = self.value  # try using the last value written to characteristic
         if as_type == "bytes":
             return value
         elif as_type == "str":

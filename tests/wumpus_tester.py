@@ -254,6 +254,7 @@ def test(program, world):
             return False
     else:
         print("Test failed. Did not return to start.")
+        
         return False
 
 
@@ -290,7 +291,6 @@ def runTests(program, difficulty, enable_hardest=False):
             ["e", "e", "e", "e"]
         ])
         test(program, world0)
-        input()
         print("Easy world 1:")
         world1 = World([
             ["e", "e", "e", "g"],

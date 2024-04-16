@@ -81,7 +81,7 @@ def adjacent_positions(x, y):
             adjacent.append((x + dx, y + dy))
     return adjacent
 
-def shortest_path(start_x, start_y, end_x, end_y, board : list):
+def shortest_path(start_x, start_y, end_x, end_y, board : list, avoid_danger=True):
     """
     given a board[WIDTH][HEIGHT] of Tile enum values,
     this returns a list of the form [(dx1, dy1), (dx2, dy2), ...] if there is a path
@@ -89,7 +89,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
     empty tiles and only moves verticall or horizontally in each step (ie. one of dx or dy will
     always be 0 in each pair).
 
-    returns None if no path can be determined.
+    returns [] if no path can be determined.
 
     Uses Dijikstra's shortest path algorithm
 
@@ -119,7 +119,7 @@ def shortest_path(start_x, start_y, end_x, end_y, board : list):
         x, y = q.get()
 
         # do not consider path through potentially dangerous tile (Note empty = 0 and gold = 8)
-        if board[x][y] & 0b011 != 0:
+        if (board[x][y] & 0b011 != 0) and avoid_danger:
             # set this cost to 1 more than max value so we don't try to consider it again
             costs[x][y] = MAX_VALUE + 1
             continue
@@ -280,7 +280,11 @@ class Board(list):
 
         # if we do not know where the wumpus or gold is, see if there is only option for where it can be
         self.gold_pos = self.gold_pos or get_unique_pos(Tile.GOLD)
-        self.wumpus_pos = self.gold_pos or get_unique_pos(Tile.WUMPUS)
+        if self.gold_pos is not None:
+            self[self.gold_pos[0]][self.gold_pos[1]] = Tile.GOLD
+        self.wumpus_pos = self.wumpus_pos or get_unique_pos(Tile.WUMPUS)
+        if self.wumpus_pos is not None:
+            self[self.wumpus_pos[0]][self.wumpus_pos[1]] = Tile.WUMPUS
     
     def __str__(self):
         """
@@ -291,6 +295,7 @@ class Board(list):
             for x in range(WIDTH):
                 s += str(self[x][y]) + " "
             s += "\n"
+        return s
     
 class Robot:
     """
@@ -332,46 +337,58 @@ class Robot:
                 col.append(Tile.UNSNIFFED)
             self.scents.append(col)
 
-    def start(self):
-        while self.state < States.GOLD_KNOWN:
-            explore_pos = self.get_explore_position()
-            # if there are no safe places to explore, shoot the wumpus and explore from that location
-            if explore_pos is None:
-                if self.board.wumpus_pos is not None and self.has_arrow:
-                    # we know where the wumpus is, and still have an arrow to use
-                    explore_pos = self.board.wumpus_pos
-                    self.shoot_at(*self.board.wumpus_pos)
-                else:
-                    # we are in a situation where we must enter a potentially dangerous tile
-                    # so we will just yolo it and hope for the best
-                    # Note: this can only arise in boards where the robot must be able to know that it is solvable for it to be solvable
-                    explore_pos = self.yolo()
-
-            self.move_to(*explore_pos)
-            self.sniff()
-            self.board.eliminate(self.scents)
-            if self.board.gold_pos is not None:
-                self.state = States.GOLD_KNOWN
-                break
-
-        assert(self.board.gold_pos is not None)
+        # initialize logs
         if self.log_actions:
+            with open("log.txt", "w") as f:
+                f.write("")
+
+    def start(self):
+        self.log("STARTING")
+        try:
+            while self.state < States.GOLD_KNOWN:
+                explore_pos = self.get_explore_position()
+                # if there are no safe places to explore, shoot the wumpus and explore from that location
+                if explore_pos is None:
+                    self.log("No explore position: " + str(self.board.wumpus_pos))
+                    if self.board.wumpus_pos is not None and self.has_arrow:
+                        # we know where the wumpus is, and still have an arrow to use
+                        explore_pos = self.board.wumpus_pos
+                        self.shoot_at(*self.board.wumpus_pos)
+                    else:
+                        # we are in a situation where we must enter a potentially dangerous tile
+                        # so we will just yolo it and hope for the best
+                        # Note: this can only arise in boards where the robot must be able to know that it is solvable for it to be solvable
+                        explore_pos = self.yolo()
+                self.move_to(*explore_pos)
+                self.sniff()
+                self.board.eliminate(self.scents)
+                if self.board.gold_pos is not None:
+                    self.state = States.GOLD_KNOWN
+                    break
+
+            assert(self.board.gold_pos is not None)
+           
             self.log("FOUND GOLD")
 
-        gold_pos = self.board.gold_pos
-        while not self.move_to(*gold_pos):
-            # shoot wumpus or continue yoloing as neccessary until the path to gold is clear
-            if self.board.wumpus_pos is not None and self.has_arrow:
-                self.shoot_at(*self.board.wumpus_pos)
-            else:
-                self.move_to(*self.yolo())
-        self.state = States.HAS_GOLD
-        if self.log_actions:
-            self.log("RETRIEVED GOLD")
+            self.board.gold_pos
+            while not self.move_to(*self.board.gold_pos):
+                # shoot wumpus or continue yoloing as neccessary until the path to gold is clear
+                if self.board.wumpus_pos is not None and self.has_arrow:
+                    self.shoot_at(*self.board.wumpus_pos)
+                else:
+                    self.move_to(*self.yolo())
 
-        # now we have the gold, so return to origin
-        self.move_to(*self.start_pos)
-        self.state = States.FINISHED
+            self.state = States.HAS_GOLD
+            if self.log_actions:
+                self.log("RETRIEVED GOLD")
+
+            # now we have the gold, so return to origin
+            self.move_to(*self.start_pos)
+            self.state = States.FINISHED
+        except Exception as e:
+            if self.log_actions:
+                self.log("ERROR: " + str(e))
+            raise e
         
     def get_explore_position(self):
         """
@@ -402,7 +419,7 @@ class Robot:
                     # a tile is highly valuable if it is adjacent to a tile that scented gold
                     if (self.scents[adj[0]][adj[1]] & Tile.GOLD) and (self.board[x][y] & Tile.GOLD):
                         sum += 100
-                if sum > max_sum or (sum == max_sum and self.distance(self.start_pos, potential) < self.distance(self.start_pos, best_pos)):
+                if sum > max_sum or (best_pos is not None and sum == max_sum and self.distance(self.start_pos, potential) < self.distance(self.start_pos, best_pos)):
                     max_sum = sum
                     best_pos = potential
         return best_pos
@@ -422,7 +439,7 @@ class Robot:
         self.scents[self.x][self.y] = scent
         self.board.reduce(scent, self.x, self.y)
 
-    def rotate(self, dx, dy):
+    def _rotate(self, dx, dy):
         """
         rotates until robot is facing the given direction
         """
@@ -440,17 +457,22 @@ class Robot:
         returns False if unable to make the movement
         """
         if self.log_actions:
-            self.log(f"moving to {x}, {y}")
+            self.log(f"moving to {x}, {y} from {self.x}, {self.y}")
 
         if not (0 <= x < WIDTH and 0 <= y < HEIGHT):
             return False
+        
+        # if already at the target location, return true
+        if self.x == x and self.y == y:
+            return True
         
         path = shortest_path(self.x, self.y, x, y, self.board)
         if path is None:
             return False
         
         self.follow_path(path)
-        return True
+
+        return len(path) > 0
 
 
     def follow_path(self, path):
@@ -459,8 +481,8 @@ class Robot:
         this moves the robot along that path in that order
         """
         for dx, dy in path:
-            self.rotate(dx, dy)
-            self.forward()
+            self._rotate(dx, dy)
+            self._forward()
 
     def yolo(self):
         """
@@ -508,7 +530,7 @@ class Robot:
             while not filtered:
                 filtered = True
                 for pos in potential_safe:
-                    possible_path_to_gold = self.board[pos[0]][pos[1]] & Tile.GOLD
+                    possible_path_to_gold = (self.board[pos[0]][pos[1]] & Tile.GOLD != 0)
                     for adj in adjacent_positions(*pos):
                         if self.board[adj[0]][adj[1]] & Tile.GOLD:
                             possible_path_to_gold = True
@@ -516,24 +538,26 @@ class Robot:
                         potential_safe.remove(pos)
                         filtered = False
                         break
-            if len(potential_safe) == 0:
-                # this board is guaranteed not solvable
-                # don't let the wumpus have the last laugh :)
-                if self.log_actions:
-                    self.log("this board is not solvable :(")
-                while True:
-                    self._rot_cw()
+        if len(potential_safe) == 0:
+            # this board is guaranteed not solvable
+            # don't let the wumpus have the last laugh :)
+            if self.log_actions:
+                self.log("this board is not solvable :(")
+            while True:
+                self._rot_cw()
         else:
             # there is either just one position, or multiple equally good guesses
             risk_pos = potential_safe[0]
 
-        if risk_pos and self.board[risk_pos[0]][risk_pos[1]] & Tile.WUMPUS:
+        if self.board[risk_pos[0]][risk_pos[1]] & Tile.WUMPUS:
             self.shoot_at(*risk_pos)
         # mark the tile as safe since that's what we will assume from now on
-        self.board[risk_pos[0]][risk_pos[1]] = self.board[risk_pos[0]][risk_pos[1]] & Tile.EMPTY
+        self.board[risk_pos[0]][risk_pos[1]] = self.board[risk_pos[0]][risk_pos[1]] & 0b0100
         return risk_pos
 
     def log(self, message):
+        if not self.log_actions:
+            return
         with open("log.txt", "a") as f:
             f.write(message + "\n")
 
@@ -541,15 +565,18 @@ class Robot:
         """
         shoots at the location (x, y) and updates the board
         """
-        path = shortest_path(self.x, self.y, x, y, self.board)
-        if path is None:
-            raise Exception("Cannot shoot at that location")
-        aim_x, aim_y = path.pop()
-        self.follow_path(path)
-        self.rotate(aim_x, aim_y)
-
-        if self.log_actions:
-            self.log(f"shooting at {x}, {y}")
+        # move to adjacent position
+        if self.distance((self.x, self.y), (x, y)) > 1:
+            for adj_x, adj_y in adjacent_positions(x, y):
+                path = shortest_path(self.x, self.y, adj_x, adj_y, self.board)
+                if len(path) > 0:
+                    self.follow_path(path)
+                    break
+        
+        aim_x = x - self.x
+        aim_y = y - self.y
+        self._rotate(aim_x, aim_y)
+        self.log(f"Shooting at {x}, {y}")
 
         if self.has_arrow:
             self.shoot()
@@ -558,7 +585,16 @@ class Robot:
         self.has_arrow = False
 
         # zero out the wumpus bit from the target position by setting the bit to 1 then flipping it
-        self.board[x][y] = (self.board[x][y] | Tile.WUMPUS) ^ Tile.WUMPUS
+        self.board[x][y] = self.board[x][y] & ~0b11
+
+        # also zero out wumpus bit from adjacent scents, due to a bug in the simulation code
+        for adj_x, adj_y in adjacent_positions(x, y):
+            self.scents[adj_x][adj_y] = self.scents[adj_x][adj_y] & ~0b10
+
+        # should technically recieve a scream signal before doing this,
+        # but there is not good in know where the wumpus is now that we don't have an arrow
+        self.board.wumpus_pos = None
+
 
     def _rot_cw(self):
         """
