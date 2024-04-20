@@ -237,6 +237,59 @@ class NanoBot(Robot):
             m1_last_error = m1_current_error
             m2_last_error = m2_current_error
             time.sleep(period)
+    """
+    def ccw():
+    global enc1
+    global enc2
+    enc1 = 0
+    enc2 = 0
+    m1_integral = 0
+    m2_integral = 0
+    period = 1/10
+    m1_last_error = None
+    m2_last_error = None
+    while abs(enc1 - turn90ticks) > turn_error or abs(enc2 + turn90ticks) > turn_error:
+        m1_current_error = turn90ticks - enc1
+        m2_current_error = -turn90ticks - enc2
+        m1_integral += m1_current_error * period
+        m2_integral += m2_current_error * period
+        m1_derivative = 0
+        if not m1_last_error is None:
+            m1_derivative = (m1_current_error - m1_last_error) / period
+        m2_derivative = 0
+        if not m2_last_error is None:
+            m2_derivative = (m2_current_error - m2_last_error) / period
+        m1Signed(kp * m1_current_error + ki * m1_integral + kd * m1_derivative)
+        m2Signed(kp * m2_current_error + ki * m2_integral + kd * m2_derivative)
+        m1_last_error = m1_current_error
+        m2_last_error = m2_current_error
+        print(f'{enc1} {enc2} {m1_current_error} {m2_current_error} {m1_integral} {m2_integral}')
+        time.sleep(period)
+    """
+    def ccw(self):
+        self.enc1 = 0
+        self.enc2 = 0
+        m1_integral = 0
+        m2_integral = 0
+        period = 1/10
+        m1_last_error = None
+        m2_last_error = None
+        while abs(self.enc1 - self.turn90ticks) > self.turn_error or abs(self.enc2 + self.turn90ticks) > self.turn_error:
+            m1_current_error = self.turn90ticks - self.enc1
+            m2_current_error = -self.turn90ticks - self.enc2
+            m1_integral += m1_current_error * period
+            m2_integral += m2_current_error * period
+            m1_derivative = 0
+            if not m1_last_error is None:
+                m1_derivative = (m1_current_error - m1_last_error) / period
+            m2_derivative = 0
+            if not m2_last_error is None:
+                m2_derivative = (m2_current_error - m2_last_error) / period
+            self.m1Signed(self.kp * m1_current_error + self.ki * m1_integral + self.kd * m1_derivative)
+            self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
+            m1_last_error = m1_current_error
+            m2_last_error = m2_current_error
+            time.sleep(period)
 
     def rot_cw(self):
         self.rot(1)
