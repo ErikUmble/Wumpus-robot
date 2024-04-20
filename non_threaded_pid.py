@@ -31,11 +31,6 @@ kp = 0.8
 ki = 0.08
 kd = 0.04
 
-enc1p1 = Pin(25)
-enc1p2 = Pin(15)
-enc2p1 = Pin(7)
-enc2p2 = Pin(27)
-
 encpins = (15, 25, 7, 27)
 
 enc1p1 = Pin(encpins[0], Pin.IN)

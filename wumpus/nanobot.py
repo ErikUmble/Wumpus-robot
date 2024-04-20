@@ -65,6 +65,7 @@ class NanoBotBLE:
 
 
     def send(self, value):
+        print(f'send {value}')
         # Writes value (as byte) to characteristic
         if not isinstance(value, bytes):
             if isinstance(value, int):
@@ -73,18 +74,21 @@ class NanoBotBLE:
                 value = value.encode('utf-8')
             else:
                 raise ValueError("send value should be type bytes, int, or string")
+        print(f'send update value: {value}')
+        self.value = value
         self._ble.gatts_write(self._handle, value)
 
     def read(self, as_type="bytes"):
         # reads value from characteristic and returns it as specified type
-        value = self._ble.gatts_read(self._handle)
-        # value = self.value  # try using the last value written to characteristic
+        # value = self._ble.gatts_read(self._handle)
+        value = self.value  # try using the last value written to characteristic
         if as_type == "bytes":
             return value
         elif as_type == "str":
             return value.decode("utf-8")
         elif as_type == "int":
-            return ord(value.decode())
+            print(f'read {value}')
+            return ord(value.decode('utf-8'))
 
         raise ValueError("as_type must be one of 'bytes', 'str', or 'int'")
 
@@ -147,6 +151,8 @@ class NanoBot(Robot):
         ir_left_sensor = ADC(29)
         ir_right_sensor = ADC(28)
 
+        self.setup()
+
     def enc_pin_high(self, pin):
         if pin == self.encpins[0] or pin == self.encpins[1]:
             if self.enc1p1.value() == 1 and self.enc1p2.value() == 1:
@@ -159,25 +165,22 @@ class NanoBot(Robot):
             if self.enc2p1.value() == 1 and self.enc2p2.value() == 1:
                 self.enc2 += 1 * self.enc2dir
             elif self.enc2p1.value() == 1:
-                self.enc2dir = 1
-            else:
                 self.enc2dir = -1
+            else:
+                self.enc2dir = 1
 
     def calc_duty(self, duty_100):
         return int(duty_100 * self.max_duty / 100)
 
     def m1Forward(self, dutyCycle):
-        print(f'  m1 forward {min(self.calc_duty(dutyCycle), self.saturated_duty)}')
         self.m1pwm1.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
         self.m1pwm2.duty_u16(0)
 
     def m1Backward(self, dutyCycle):
-        print(f'  m1 backward {min(self.calc_duty(dutyCycle), self.saturated_duty)}')
         self.m1pwm1.duty_u16(0)
         self.m1pwm2.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
 
     def m1Signed(self, dutyCycle):
-        print(f'm1 signed {dutyCycle}')
         if dutyCycle >= 0:
             self.m1Forward(dutyCycle)
         else:
@@ -197,14 +200,14 @@ class NanoBot(Robot):
         else:
             self.m2Backward(-dutyCycle)
 
-    def allStop():
+    def allStop(self):
         # set all duty cycles to 0
         self.m1pwm1.duty_u16(0)
         self.m1pwm2.duty_u16(0)
         self.m2pwm1.duty_u16(0)
         self.m2pwm2.duty_u16(0)
 
-    def setup():
+    def setup(self):
         # initialize frequencies
         self.m1pwm1.freq(1000)
         self.m1pwm2.freq(1000)
@@ -233,9 +236,9 @@ class NanoBot(Robot):
                 m2_derivative = (m2_current_error - m2_last_error) / period
             self.m1Signed(self.kp * m1_current_error + self.ki * m1_integral + self.kd * m1_derivative)
             self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
-            print('sending power')
             m1_last_error = m1_current_error
             m2_last_error = m2_current_error
+            print(f'{self.enc1} {self.enc2} {m1_current_error} {m2_current_error}')
             time.sleep(period)
     """
     def ccw():
@@ -289,10 +292,11 @@ class NanoBot(Robot):
             self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
             m1_last_error = m1_current_error
             m2_last_error = m2_current_error
+            print(f'{m1_current_error} {m2_current_error}')
             time.sleep(period)
 
     def rot_cw(self):
-        self.rot(1)
+        self.rot(-1)
 
     def rot_ccw(self):
         self.rot(-1)
@@ -308,7 +312,7 @@ class NanoBot(Robot):
         self.m1Forward(15000)
         self.m2Forward(15000)
         time.sleep(5)
-        allStop()
+        self.allStop()
 
     def receive_scent(self):
         # send ? to get scent
