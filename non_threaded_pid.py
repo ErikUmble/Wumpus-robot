@@ -20,9 +20,9 @@ m2pwm2 = PWM(m2pin2)
 LED = Pin(6, Pin.OUT)
 max_duty = 65535 # constant
 
-saturated_duty = 20000 # choice for max speed
+saturated_duty = 16000 # choice for max speed
 
-turn90ticks = 120
+turn90ticks = 115
 turn_error = 10
 
 enc_max_value = 20000

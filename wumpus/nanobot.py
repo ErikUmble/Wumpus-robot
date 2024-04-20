@@ -39,7 +39,7 @@ class NanoBotBLE:
         self._connections = set()
         self._payload = advertising_payload(name=name, services=[_SERVICE_UUID])
         self._advertise()
-        self.value = 0
+        self.value = b'a'
 
     def _advertise(self, interval_us=500000):
         self._ble.gap_advertise(interval_us, adv_data=self._payload)
@@ -62,7 +62,7 @@ class NanoBotBLE:
             if conn_handle in self._connections:
                 # Value has been written to the characteristic
                 self.value = self._ble.gatts_read(value_handle)
-                
+
 
     def send(self, value):
         # Writes value (as byte) to characteristic
@@ -77,14 +77,14 @@ class NanoBotBLE:
 
     def read(self, as_type="bytes"):
         # reads value from characteristic and returns it as specified type
-        #value = self._ble.gatts_read(self._handle)
-        value = self.value  # try using the last value written to characteristic
+        value = self._ble.gatts_read(self._handle)
+        # value = self.value  # try using the last value written to characteristic
         if as_type == "bytes":
             return value
         elif as_type == "str":
             return value.decode("utf-8")
         elif as_type == "int":
-            return int.from_bytes(value, "big")
+            return ord(value.decode())
 
         raise ValueError("as_type must be one of 'bytes', 'str', or 'int'")
 
@@ -92,6 +92,9 @@ class NanoBotBLE:
 
 class NanoBot(Robot):
     def __init__(self, *args, **kwargs):
+
+        machine.freq(100000000)
+
         super().__init__(*args, **kwargs)
 
         # initialize bluetooth
@@ -135,10 +138,10 @@ class NanoBot(Robot):
         self.enc2dir = 1
 
         # add interrupt callbacks to track encoder ticks
-        self.enc1p1.irq(lambda pin: self.enc_pin_high(encpins[0]), Pin.IRQ_RISING)
-        self.enc1p2.irq(lambda pin: self.enc_pin_high(encpins[1]), Pin.IRQ_RISING)
-        self.enc2p1.irq(lambda pin: self.enc_pin_high(encpins[2]), Pin.IRQ_RISING)
-        self.enc2p2.irq(lambda pin: self.enc_pin_high(encpins[3]), Pin.IRQ_RISING)
+        self.enc1p1.irq(lambda pin: self.enc_pin_high(self.encpins[0]), Pin.IRQ_RISING)
+        self.enc1p2.irq(lambda pin: self.enc_pin_high(self.encpins[1]), Pin.IRQ_RISING)
+        self.enc2p1.irq(lambda pin: self.enc_pin_high(self.encpins[2]), Pin.IRQ_RISING)
+        self.enc2p2.irq(lambda pin: self.enc_pin_high(self.encpins[3]), Pin.IRQ_RISING)
 
         # initialize ir sensors
         ir_left_sensor = ADC(29)
@@ -161,17 +164,20 @@ class NanoBot(Robot):
                 self.enc2dir = -1
 
     def calc_duty(self, duty_100):
-        return int(duty_100 * max_duty / 100)
+        return int(duty_100 * self.max_duty / 100)
 
     def m1Forward(self, dutyCycle):
+        print(f'  m1 forward {min(self.calc_duty(dutyCycle), self.saturated_duty)}')
         self.m1pwm1.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
         self.m1pwm2.duty_u16(0)
 
     def m1Backward(self, dutyCycle):
+        print(f'  m1 backward {min(self.calc_duty(dutyCycle), self.saturated_duty)}')
         self.m1pwm1.duty_u16(0)
         self.m1pwm2.duty_u16(min(self.calc_duty(dutyCycle), self.saturated_duty))
 
     def m1Signed(self, dutyCycle):
+        print(f'm1 signed {dutyCycle}')
         if dutyCycle >= 0:
             self.m1Forward(dutyCycle)
         else:
@@ -206,6 +212,7 @@ class NanoBot(Robot):
         self.m2pwm2.freq(1000)
 
     def rot(self, ccw_dir=1):
+        print('turning')
         self.enc1 = 0
         self.enc2 = 0
         m1_integral = 0
@@ -226,6 +233,7 @@ class NanoBot(Robot):
                 m2_derivative = (m2_current_error - m2_last_error) / period
             self.m1Signed(self.kp * m1_current_error + self.ki * m1_integral + self.kd * m1_derivative)
             self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
+            print('sending power')
             m1_last_error = m1_current_error
             m2_last_error = m2_current_error
             time.sleep(period)
@@ -243,6 +251,7 @@ class NanoBot(Robot):
         return self.ir_right_sensor.read_u16() < 65535 // 2
 
     def forward(self):
+        print('forward')
         self.m1Forward(15000)
         self.m2Forward(15000)
         time.sleep(5)
