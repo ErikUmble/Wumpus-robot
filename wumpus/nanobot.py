@@ -90,7 +90,7 @@ class NanoBotBLE:
                 return value.decode("utf-8")
             elif as_type == "int":
                 print(f'read {value}')
-                return ord(value.decode('utf-8'))
+                return int.from_bytes(value, "big")
         except Exception as e:
             return None
 
