@@ -278,9 +278,11 @@ class NanoBot(Robot):
                 if not white_left and self.ir_left():
                     white_left = True
                     left_time = count
+                    print("Left has white")
                 if not white_right and self.ir_right():
                     white_right = True
                     right_time = count
+                    print("Right has white")
             self.allStop()
             if abs(left_time - right_time) < error_threshold_ms:
                 break
