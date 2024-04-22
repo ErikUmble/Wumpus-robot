@@ -128,6 +128,9 @@ class NanoBot(Robot):
         self.saturated_duty = 20000 # choice for max speed
         self.turn90ticks = 120
         self.turn_error = 10
+        self.slow = 40
+        self.medium = 60
+        self.block_delay = 2500
 
         # PID controller constants
         self.kp = 0.8
@@ -259,10 +262,53 @@ class NanoBot(Robot):
         return self.ir_right_sensor.read_u16() < 65535 // 2
 
     def forward(self):
-        print('forward')
-        self.m1Forward(15000)
-        self.m2Forward(15000)
-        time.sleep(5)
+        # move forward and then make corrections until both sensors detect white at the same time
+        white_left = False
+        white_right = False
+        left_time = 0
+        right_time = 0
+        error_threshold_ms = 20
+        while True:
+            count = 0
+            self.m1Forward(self.slow)
+            self.m2Forward(self.slow)
+            while not (white_left and white_right):
+                count += 1
+                time.sleep_ms(1)
+                if not white_left and ir_left():
+                    white_left = True
+                    left_time = count
+                if not white_right and ir_right():
+                    white_right = True
+                    right_time = count
+                    all_stop()
+            if abs(left_time - right_time) < error_threshold_ms:
+                break
+
+            # backup and rotate to correct
+            self.m1Backward(self.med)
+            self.m2Backward(self.med)
+            time.sleep_ms(500)
+            self.allStop()
+
+            if left_time < right_time:
+                self.m1Forward(self.slow)
+                self.m2Backward(self.slow)
+                time.sleep_ms(right_time - left_time)
+                self.allStop()
+            else:
+                self.m1Backward(self.slow)
+                self.m2Forward(self.slow)
+                time.sleep_ms(left_time - right_time)
+                self.allStop()
+            white_left = False
+            white_right = False
+            left_time = 0
+            right_time = 0
+
+        m1Forward(self.slow)
+        m2Forward(self.slow)
+        time.sleep_ms(self.block_delay)
         self.allStop()
 
     def receive_scent(self):
