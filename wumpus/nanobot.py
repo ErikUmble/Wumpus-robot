@@ -128,9 +128,13 @@ class NanoBot(Robot):
         self.saturated_duty = 20000 # choice for max speed
         self.turn90ticks = 120
         self.turn_error = 10
-        self.slow = 40
-        self.medium = 60
+        self.slow = 20
+        self.med = 40
         self.block_delay = 2500
+
+        # ir sensors
+        self.ir_left_sensor = ADC(Pin(28, Pin.IN))
+        self.ir_right_sensor = ADC(Pin(29, Pin.IN))
 
         # PID controller constants
         self.kp = 0.8
@@ -153,10 +157,6 @@ class NanoBot(Robot):
         self.enc1p2.irq(lambda pin: self.enc_pin_high(self.encpins[1]), Pin.IRQ_RISING)
         self.enc2p1.irq(lambda pin: self.enc_pin_high(self.encpins[2]), Pin.IRQ_RISING)
         self.enc2p2.irq(lambda pin: self.enc_pin_high(self.encpins[3]), Pin.IRQ_RISING)
-
-        # initialize ir sensors
-        ir_left_sensor = ADC(29)
-        ir_right_sensor = ADC(28)
 
         self.setup()
 
@@ -253,7 +253,7 @@ class NanoBot(Robot):
         self.rot(-1)
 
     def rot_ccw(self):
-        self.rot(-1)
+        self.rot(1)
 
     def ir_left(self):
         return self.ir_left_sensor.read_u16() < 65535 // 2
@@ -275,13 +275,13 @@ class NanoBot(Robot):
             while not (white_left and white_right):
                 count += 1
                 time.sleep_ms(1)
-                if not white_left and ir_left():
+                if not white_left and self.ir_left():
                     white_left = True
                     left_time = count
-                if not white_right and ir_right():
+                if not white_right and self.ir_right():
                     white_right = True
                     right_time = count
-                    all_stop()
+            self.allStop()
             if abs(left_time - right_time) < error_threshold_ms:
                 break
 
@@ -291,23 +291,25 @@ class NanoBot(Robot):
             time.sleep_ms(500)
             self.allStop()
 
+            print(f'left: {left_time} right: {right_time}')
+
             if left_time < right_time:
                 self.m1Forward(self.slow)
                 self.m2Backward(self.slow)
-                time.sleep_ms(right_time - left_time)
+                time.sleep_ms((right_time - left_time) // 15)
                 self.allStop()
             else:
                 self.m1Backward(self.slow)
                 self.m2Forward(self.slow)
-                time.sleep_ms(left_time - right_time)
+                time.sleep_ms((left_time - right_time) // 15)
                 self.allStop()
             white_left = False
             white_right = False
             left_time = 0
             right_time = 0
 
-        m1Forward(self.slow)
-        m2Forward(self.slow)
+        self.m1Forward(self.slow)
+        self.m2Forward(self.slow)
         time.sleep_ms(self.block_delay)
         self.allStop()
 
