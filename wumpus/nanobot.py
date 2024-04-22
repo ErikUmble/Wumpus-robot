@@ -80,15 +80,19 @@ class NanoBotBLE:
 
     def read(self, as_type="bytes"):
         # reads value from characteristic and returns it as specified type
+        # returns None if the bluetooth value is corrupted or not compatible with the specified type
         # value = self._ble.gatts_read(self._handle)
         value = self.value  # try using the last value written to characteristic
-        if as_type == "bytes":
-            return value
-        elif as_type == "str":
-            return value.decode("utf-8")
-        elif as_type == "int":
-            print(f'read {value}')
-            return ord(value.decode('utf-8'))
+        try:
+            if as_type == "bytes":
+                return value
+            elif as_type == "str":
+                return value.decode("utf-8")
+            elif as_type == "int":
+                print(f'read {value}')
+                return ord(value.decode('utf-8'))
+        except Exception as e:
+            return None
 
         raise ValueError("as_type must be one of 'bytes', 'str', or 'int'")
 
@@ -240,60 +244,7 @@ class NanoBot(Robot):
             m2_last_error = m2_current_error
             print(f'{self.enc1} {self.enc2} {m1_current_error} {m2_current_error}')
             time.sleep(period)
-    """
-    def ccw():
-    global enc1
-    global enc2
-    enc1 = 0
-    enc2 = 0
-    m1_integral = 0
-    m2_integral = 0
-    period = 1/10
-    m1_last_error = None
-    m2_last_error = None
-    while abs(enc1 - turn90ticks) > turn_error or abs(enc2 + turn90ticks) > turn_error:
-        m1_current_error = turn90ticks - enc1
-        m2_current_error = -turn90ticks - enc2
-        m1_integral += m1_current_error * period
-        m2_integral += m2_current_error * period
-        m1_derivative = 0
-        if not m1_last_error is None:
-            m1_derivative = (m1_current_error - m1_last_error) / period
-        m2_derivative = 0
-        if not m2_last_error is None:
-            m2_derivative = (m2_current_error - m2_last_error) / period
-        m1Signed(kp * m1_current_error + ki * m1_integral + kd * m1_derivative)
-        m2Signed(kp * m2_current_error + ki * m2_integral + kd * m2_derivative)
-        m1_last_error = m1_current_error
-        m2_last_error = m2_current_error
-        print(f'{enc1} {enc2} {m1_current_error} {m2_current_error} {m1_integral} {m2_integral}')
-        time.sleep(period)
-    """
-    def ccw(self):
-        self.enc1 = 0
-        self.enc2 = 0
-        m1_integral = 0
-        m2_integral = 0
-        period = 1/10
-        m1_last_error = None
-        m2_last_error = None
-        while abs(self.enc1 - self.turn90ticks) > self.turn_error or abs(self.enc2 + self.turn90ticks) > self.turn_error:
-            m1_current_error = self.turn90ticks - self.enc1
-            m2_current_error = -self.turn90ticks - self.enc2
-            m1_integral += m1_current_error * period
-            m2_integral += m2_current_error * period
-            m1_derivative = 0
-            if not m1_last_error is None:
-                m1_derivative = (m1_current_error - m1_last_error) / period
-            m2_derivative = 0
-            if not m2_last_error is None:
-                m2_derivative = (m2_current_error - m2_last_error) / period
-            self.m1Signed(self.kp * m1_current_error + self.ki * m1_integral + self.kd * m1_derivative)
-            self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
-            m1_last_error = m1_current_error
-            m2_last_error = m2_current_error
-            print(f'{m1_current_error} {m2_current_error}')
-            time.sleep(period)
+    
 
     def rot_cw(self):
         self.rot(-1)
@@ -321,6 +272,11 @@ class NanoBot(Robot):
         # loop until value was changed by bluetooth client
         while (response := self.bluetooth.read("int")) == ord("?"):
             pass
+        
+        # ask again if response is invalid
+        if response is None:
+            return self.receive_scent()
+        
         return response
 
     def shoot(self):
