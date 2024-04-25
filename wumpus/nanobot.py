@@ -132,9 +132,15 @@ class NanoBot(Robot):
         self.med = 40
         self.block_delay = 2500
 
+        # turn ir sensor pin on (inactive because it's active low)
+        self.ir_right_sensor = Pin(28, Pin.OUT)
+        self.ir_right_sensor.on()
+
+        time.sleep(0.5)
+
         # ir sensors
-        self.ir_left_sensor = ADC(Pin(28, Pin.IN))
-        self.ir_right_sensor = ADC(Pin(29, Pin.IN))
+        self.ir_left_sensor = ADC(Pin(29, Pin.IN))
+        self.ir_right_sensor = ADC(Pin(28, Pin.IN))
 
         # PID controller constants
         self.kp = 0.8
