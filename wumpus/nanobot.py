@@ -16,11 +16,11 @@ _IRQ_CENTRAL_CONNECT = const(1)
 _IRQ_CENTRAL_DISCONNECT = const(2)
 _IRQ_GATTS_WRITE = const(3)
 
-class NanoBotBLE:
+class BLE:
     """
     A helpful wraper around the BLE service functions needed for the Wumpus World project
     """
-    def __init__(self, ble, name="NANO RP2040"):
+    def __init__(self, ble=bluetooth.BLE(), name="NANO RP2040"):
         # Setup bluetooth low energy communication service
         _SERVICE_UUID = bluetooth.UUID(0x1523) # unique service id for the communication
         _NanoBot_CHAR_UUID = (bluetooth.UUID(0x1525), _FLAG_WRITE | _FLAG_READ) # characteristic
@@ -106,7 +106,7 @@ class NanoBot(Robot):
         super().__init__(*args, **kwargs)
 
         # initialize bluetooth
-        self.bluetooth = NanoBotBLE(bluetooth.BLE())
+        self.bluetooth = BLE()
         self.bluetooth.send(0)
         while self.bluetooth.read("int") == 0:
             continue
