@@ -125,7 +125,7 @@ class NanoBot(Robot):
 
         # initialize motor constants
         self.max_duty = 65535 # constant
-        self.saturated_duty = 20000 # choice for max speed
+        self.saturated_duty = 22000 # choice for max speed
         self.turn90ticks = 120
         self.turn_error = 5
         self.slow = 20
@@ -277,7 +277,8 @@ class NanoBot(Robot):
         left_time = 0
         right_time = 0
         error_threshold_ms = 50
-        while True:
+        correction_count = 0
+        while correction_count <= 5:
             count = 0
             self.m1Forward(self.slow)
             self.m2Forward(self.slow)
@@ -320,6 +321,7 @@ class NanoBot(Robot):
             white_right = False
             left_time = 0
             right_time = 0
+            correction_count += 1
 
         self.m1Forward(self.slow)
         self.m2Forward(self.slow)
