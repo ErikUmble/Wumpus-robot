@@ -20,13 +20,13 @@ class BLE:
     """
     A helpful wraper around the BLE service functions needed for the Wumpus World project
     """
-    def __init__(self, ble=bluetooth.BLE(), name="NANO RP2040"):
+    def __init__(self, ble=None, name="NANO RP2040"):
         # Setup bluetooth low energy communication service
         _SERVICE_UUID = bluetooth.UUID(0x1523) # unique service id for the communication
         _NanoBot_CHAR_UUID = (bluetooth.UUID(0x1525), _FLAG_WRITE | _FLAG_READ) # characteristic
         _NanoBot_SERVICE = (_SERVICE_UUID, (_NanoBot_CHAR_UUID,),) # service to provide the characteristic
 
-        self._ble = ble
+        self._ble = ble or bluetooth.BLE()
         self._ble.active(True)
         self._ble.config(
             bond=True,
