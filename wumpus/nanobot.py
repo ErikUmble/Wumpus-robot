@@ -126,7 +126,7 @@ class NanoBot(Robot):
         # initialize motor constants
         self.max_duty = 65535 # constant
         self.saturated_duty = 20000 # choice for max speed
-        self.turn90ticks = 130
+        self.turn90ticks = 120
         self.turn_error = 5
         self.slow = 20
         self.med = 40
@@ -143,9 +143,10 @@ class NanoBot(Robot):
         self.ir_right_sensor = ADC(Pin(28, Pin.IN))
 
         # PID controller constants
-        self.kp = 0.8
-        self.ki = 0.08
-        self.kd = 0.04
+        self.battery_scaling = 1.05
+        self.kp = 0.8 * self.battery_scaling
+        self.ki = 0.08 * self.battery_scaling
+        self.kd = 0.04 * self.battery_scaling
 
         # initialize encoder variables
         self.enc1p1 = Pin(self.encpins[0], Pin.IN)
