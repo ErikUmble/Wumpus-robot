@@ -186,7 +186,7 @@ class Board(list):
         Note: when 0b1000 is sensed, this means the current tile contains gold and says nothing
         about surrounding tiles.
         """
-        if (scent == 0b1000):
+        if (scent & 0b1000 != 0):
             self[x][y] = Tile.GOLD
             self.gold_pos = (x, y)
             return
