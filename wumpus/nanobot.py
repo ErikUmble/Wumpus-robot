@@ -107,6 +107,7 @@ class NanoBot(Robot):
 
         # initialize bluetooth
         self.bluetooth = BLE()
+        time.sleep(0.5)
         self.bluetooth.send(0)
         while self.bluetooth.read("int") == 0:
             continue
