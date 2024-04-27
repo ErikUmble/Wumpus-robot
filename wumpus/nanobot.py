@@ -127,10 +127,10 @@ class NanoBot(Robot):
         self.max_duty = 65535 # constant
         self.saturated_duty = 20000 # choice for max speed
         self.turn90ticks = 120
-        self.turn_error = 10
+        self.turn_error = 5
         self.slow = 20
         self.med = 40
-        self.block_delay = 2500
+        self.block_delay = 1550
 
         # turn ir sensor pin on (inactive because it's active low)
         self.ir_right_sensor = Pin(28, Pin.OUT)
@@ -143,9 +143,10 @@ class NanoBot(Robot):
         self.ir_right_sensor = ADC(Pin(28, Pin.IN))
 
         # PID controller constants
-        self.kp = 0.8
-        self.ki = 0.08
-        self.kd = 0.04
+        self.battery_scaling = 1.05
+        self.kp = 0.8 * self.battery_scaling
+        self.ki = 0.08 * self.battery_scaling
+        self.kd = 0.04 * self.battery_scaling
 
         # initialize encoder variables
         self.enc1p1 = Pin(self.encpins[0], Pin.IN)
@@ -227,7 +228,7 @@ class NanoBot(Robot):
         self.m2pwm1.freq(1000)
         self.m2pwm2.freq(1000)
 
-    def rot(self, ccw_dir=1):
+    def rot(self, ccw_dir=1, max_period_count=50):
         print('turning')
         self.enc1 = 0
         self.enc2 = 0
@@ -236,7 +237,8 @@ class NanoBot(Robot):
         period = 1/10
         m1_last_error = None
         m2_last_error = None
-        while abs(self.enc1 - self.turn90ticks * ccw_dir) > self.turn_error or abs(self.enc2 + self.turn90ticks * ccw_dir) > self.turn_error:
+        period_count = 0
+        while (abs(self.enc1 - self.turn90ticks * ccw_dir) > self.turn_error or abs(self.enc2 + self.turn90ticks * ccw_dir) > self.turn_error) and period_count < max_period_count:
             m1_current_error = self.turn90ticks * ccw_dir - self.enc1
             m2_current_error = -self.turn90ticks * ccw_dir - self.enc2
             m1_integral += m1_current_error * period
@@ -252,6 +254,7 @@ class NanoBot(Robot):
             m1_last_error = m1_current_error
             m2_last_error = m2_current_error
             print(f'{self.enc1} {self.enc2} {m1_current_error} {m2_current_error}')
+            period_count += 1
             time.sleep(period)
     
 
@@ -273,7 +276,7 @@ class NanoBot(Robot):
         white_right = False
         left_time = 0
         right_time = 0
-        error_threshold_ms = 20
+        error_threshold_ms = 50
         while True:
             count = 0
             self.m1Forward(self.slow)
@@ -302,14 +305,16 @@ class NanoBot(Robot):
             print(f'left: {left_time} right: {right_time}')
 
             if left_time < right_time:
+                print('turning left')
                 self.m1Forward(self.slow)
                 self.m2Backward(self.slow)
-                time.sleep_ms((right_time - left_time) // 15)
+                time.sleep_ms(right_time - left_time)
                 self.allStop()
             else:
+                print('turning right')
                 self.m1Backward(self.slow)
                 self.m2Forward(self.slow)
-                time.sleep_ms((left_time - right_time) // 15)
+                time.sleep_ms(left_time - right_time)
                 self.allStop()
             white_left = False
             white_right = False
