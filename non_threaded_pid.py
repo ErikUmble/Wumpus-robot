@@ -2,12 +2,10 @@ import time
 import rp2
 import machine
 from machine import Pin, PWM
-import _thread
-from rotary_irq_rp2 import RotaryIRQ
 
 machine.freq(100000000) # set the CPU frequency to 240 MHz
 
-m1pin1 = Pin(21)
+m1pin1 = Pin(5)
 m1pin2 = Pin(4)
 m2pin1 = Pin(18)
 m2pin2 = Pin(17)
@@ -146,7 +144,14 @@ setup()
 
 while True:
     LED.off()
-    ccw()
-    LED.on()
+    m1Forward(90)
+    m2Forward(90)
+    time.sleep(1)
     allStop()
-    time.sleep(5)
+    time.sleep(1)
+    m1Backward(90)
+    m2Backward(90)
+    time.sleep(1)
+    allStop()
+    LED.on()
+    time.sleep(2)

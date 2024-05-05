@@ -8,7 +8,7 @@ void setup() {
 
 void loop() {
 
-  int value = analogRead(16);
+  int value = analogRead(17);
   if (value > 1023/2) {
     digitalWrite(13, HIGH);
   }
