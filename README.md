@@ -10,3 +10,6 @@ This robot can interact with its environment. It takes appropriate inputs and us
 
 ### Demo
 [Our Website](https://wumpus.erikumble.com/demo)
+
+### Kit
+Using our robot design as inspiration, we also created an educational robotics kit, documented [here](https://bram-hub.github.io/NanoNav). 
