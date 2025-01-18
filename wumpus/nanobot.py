@@ -65,7 +65,6 @@ class BLE:
 
 
     def send(self, value):
-        print(f'send {value}')
         # Writes value (as byte) to characteristic
         if not isinstance(value, bytes):
             if isinstance(value, int):
@@ -74,7 +73,6 @@ class BLE:
                 value = value.encode('utf-8')
             else:
                 raise ValueError("send value should be type bytes, int, or string")
-        print(f'send update value: {value}')
         self.value = value
         self._ble.gatts_write(self._handle, value)
 
@@ -89,7 +87,6 @@ class BLE:
             elif as_type == "str":
                 return value.decode("utf-8")
             elif as_type == "int":
-                print(f'read {value}')
                 return int.from_bytes(value, "big")
         except Exception as e:
             return None
@@ -107,14 +104,15 @@ class NanoBot(Robot):
 
         # initialize bluetooth
         self.bluetooth = BLE()
+        time.sleep(0.5)
         self.bluetooth.send(0)
         while self.bluetooth.read("int") == 0:
             continue
         self.encpins = (15, 25, 7, 27)
 
         # initialize motors
-        m1pin1 = Pin(21)
-        m1pin2 = Pin(4)
+        m1pin1 = Pin(4)
+        m1pin2 = Pin(5)
         m2pin1 = Pin(18)
         m2pin2 = Pin(17)
 
@@ -229,7 +227,6 @@ class NanoBot(Robot):
         self.m2pwm2.freq(1000)
 
     def rot(self, ccw_dir=1, max_period_count=50):
-        print('turning')
         self.enc1 = 0
         self.enc2 = 0
         m1_integral = 0
@@ -253,7 +250,6 @@ class NanoBot(Robot):
             self.m2Signed(self.kp * m2_current_error + self.ki * m2_integral + self.kd * m2_derivative)
             m1_last_error = m1_current_error
             m2_last_error = m2_current_error
-            print(f'{self.enc1} {self.enc2} {m1_current_error} {m2_current_error}')
             period_count += 1
             time.sleep(period)
     
@@ -288,11 +284,9 @@ class NanoBot(Robot):
                 if not white_left and self.ir_left():
                     white_left = True
                     left_time = count
-                    print("Left has white")
                 if not white_right and self.ir_right():
                     white_right = True
                     right_time = count
-                    print("Right has white")
             self.allStop()
             if abs(left_time - right_time) < error_threshold_ms:
                 break
@@ -303,16 +297,13 @@ class NanoBot(Robot):
             time.sleep_ms(500)
             self.allStop()
 
-            print(f'left: {left_time} right: {right_time}')
 
             if left_time < right_time:
-                print('turning left')
                 self.m1Forward(self.slow)
                 self.m2Backward(self.slow)
                 time.sleep_ms(right_time - left_time)
                 self.allStop()
             else:
-                print('turning right')
                 self.m1Backward(self.slow)
                 self.m2Forward(self.slow)
                 time.sleep_ms(left_time - right_time)
