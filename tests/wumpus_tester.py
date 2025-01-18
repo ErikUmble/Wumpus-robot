@@ -337,6 +337,8 @@ def runTests(program, difficulty, enable_hardest=False):
         print(str(world1))
         if not test(program, world1):
             failures += 1
+        input("continue")
+
         print()
         print("Medium world 2:")
         world2 = World([

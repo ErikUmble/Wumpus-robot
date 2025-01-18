@@ -1,0 +1,85 @@
+STARTING
+current board knowledge:
+7 7 7 7 
+7 7 7 7 
+7 7 7 7 
+4 7 7 7 
+
+moving to 0, 0 from 0, 0
+recieved scent 0 at 0, 0
+current board knowledge:
+7 7 7 7 
+7 7 7 7 
+0 7 7 7 
+4 0 7 7 
+
+moving to 0, 1 from 0, 0
+recieved scent 1 at 0, 1
+current board knowledge:
+7 7 7 7 
+1 7 7 7 
+0 1 7 7 
+0 0 7 7 
+
+moving to 1, 0 from 0, 1
+recieved scent 0 at 1, 0
+current board knowledge:
+7 7 7 7 
+1 7 7 7 
+0 0 7 7 
+0 0 0 7 
+
+moving to 1, 1 from 1, 0
+recieved scent 0 at 1, 1
+current board knowledge:
+7 7 7 7 
+1 0 7 7 
+0 0 0 7 
+0 0 0 7 
+
+moving to 1, 2 from 1, 1
+recieved scent 1 at 1, 2
+current board knowledge:
+7 1 7 7 
+1 0 1 7 
+0 0 0 7 
+0 0 0 7 
+
+moving to 2, 1 from 1, 2
+recieved scent 0 at 2, 1
+current board knowledge:
+7 1 7 7 
+1 0 0 7 
+0 0 0 0 
+0 0 0 7 
+
+moving to 2, 2 from 2, 1
+recieved scent 4 at 2, 2
+current board knowledge:
+3 1 4 3 
+1 0 0 4 
+0 0 0 0 
+0 0 0 3 
+
+moving to 2, 3 from 2, 2
+recieved scent 9 at 2, 3
+current board knowledge:
+3 1 4 1 
+1 0 0 4 
+0 0 0 0 
+0 0 0 3 
+
+moving to 3, 2 from 2, 3
+recieved scent 1 at 3, 2
+current board knowledge:
+3 1 4 1 
+1 0 0 4 
+0 0 0 0 
+0 0 0 3 
+
+moving to 3, 1 from 3, 2
+recieved scent 2 at 3, 1
+FOUND GOLD
+moving to 2, 3 from 3, 1
+RETRIEVED GOLD
+moving to 0, 0 from 2, 3
